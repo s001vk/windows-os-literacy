@@ -11,19 +11,434 @@
     <section class="hero">
       <div class="label">Windows OS教養講座 第7章</div>
       <h1>レジストリ</h1>
-      <p>OS設定、アプリ設定、グループポリシーとの関係を理解し、直接編集の危険性と調査時の見方を学ぶ章です。</p>
+      <p>
+        レジストリを、OSやアプリケーションの設定を保存する基盤として理解し、グループポリシー、権限、障害調査との関係を学びます。
+      </p>
     </section>
+
     <section class="card">
       <h2>この章の目的</h2>
-      <p>このページは第7章の準備ページです。本文作成時は、HKEY_LOCAL_MACHINE、HKEY_CURRENT_USER、アプリ設定、OS設定、バックアップ、原因調査で見る場面を扱います。</p>
-      <div class="point"><strong>学習予定：</strong>レジストリを「設定の保存場所」としてだけでなく、権限、ポリシー、アプリ実行条件と結び付けて理解します。</div>
+      <p>
+        第6章では、Windowsのネットワーク基礎を扱いました。
+        第7章では、Windowsの動作やアプリケーション設定に強く関係するレジストリを学びます。
+      </p>
+      <p>
+        レジストリは、OS設定、アプリ設定、サービス設定、関連付け、ポリシー、インストール情報などを保存する階層型の設定データベースです。
+        業務システム運用では、設定ファイルだけでなく、レジストリに保存された値が動作を左右することがあります。
+      </p>
+      <div class="point">
+        <strong>この章のゴール：</strong>
+        レジストリを安易に編集する対象ではなく、設定、権限、ポリシー、障害調査の観点で安全に確認できるようになることです。
+      </div>
     </section>
+
+    <section class="card">
+      <h2>目次</h2>
+      <ul class="toc">
+        <li><a href="#what-is-registry">1. レジストリとは何か</a></li>
+        <li><a href="#hives">2. 主要なハイブ</a></li>
+        <li><a href="#app-os-settings">3. アプリ設定とOS設定</a></li>
+        <li><a href="#policy">4. グループポリシーとの関係</a></li>
+        <li><a href="#permissions">5. レジストリの権限</a></li>
+        <li><a href="#backup-risk">6. 直接編集の危険性とバックアップ</a></li>
+        <li><a href="#investigation">7. 原因調査で見る場面</a></li>
+        <li><a href="#operations">8. 実務での観点</a></li>
+        <li><a href="#commands">9. コマンド例</a></li>
+        <li><a href="#quiz">10. 理解度チェック</a></li>
+      </ul>
+    </section>
+
+    <section id="what-is-registry" class="card">
+      <h2>1. レジストリとは何か</h2>
+      <p>
+        レジストリは、Windowsが利用する設定データベースです。
+        ファイルシステムのように階層構造を持ち、キーと値で設定を管理します。
+        設定ファイルがアプリごとに分かれているのに対し、レジストリはOSやアプリが共通して参照する設定の保存場所として使われます。
+      </p>
+      <p>
+        レジストリには、OSの構成、デバイス、サービス、ユーザーごとの設定、アプリケーションのインストール情報、ファイル拡張子の関連付け、ポリシー設定などが保存されます。
+        そのため、Windowsの挙動を調査するときに、ファイル、プロセス、サービス、ログと並んで確認対象になります。
+      </p>
+      <div class="diagram">
+        <div class="diagram-box">キー<small>フォルダのような階層</small></div>
+        <div class="diagram-box">値<small>設定名とデータ</small></div>
+        <div class="diagram-box">ハイブ<small>大きな管理単位</small></div>
+        <div class="diagram-box">権限<small>読み取り、変更、所有者</small></div>
+      </div>
+      <div class="warning">
+        <strong>注意：</strong>
+        レジストリは重要な設定基盤です。意味を理解しないまま変更すると、アプリやOSの動作に影響する場合があります。
+      </div>
+    </section>
+
+    <section id="hives" class="card">
+      <h2>2. 主要なハイブ</h2>
+      <p>
+        レジストリの最上位に見える分類を、ハイブと呼びます。
+        実務では特に <code>HKEY_LOCAL_MACHINE</code> と <code>HKEY_CURRENT_USER</code> をよく確認します。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>ハイブ</th>
+            <th>主な意味</th>
+            <th>実務で見る場面</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>HKEY_LOCAL_MACHINE</code></td>
+            <td>端末やサーバー全体に関係する設定です。</td>
+            <td>サービス、ドライバ、インストール済みアプリ、OS全体設定、マシン単位ポリシー。</td>
+          </tr>
+          <tr>
+            <td><code>HKEY_CURRENT_USER</code></td>
+            <td>現在ログオンしているユーザーの設定です。</td>
+            <td>ユーザー別アプリ設定、画面設定、ユーザー単位ポリシー、資格情報に近い設定。</td>
+          </tr>
+          <tr>
+            <td><code>HKEY_CLASSES_ROOT</code></td>
+            <td>ファイル拡張子、COM、関連付けなどの情報です。</td>
+            <td>ファイルを開くアプリ、COMコンポーネント、Office連携、古い業務アプリ。</td>
+          </tr>
+          <tr>
+            <td><code>HKEY_USERS</code></td>
+            <td>各ユーザープロファイルの設定をSID単位で保持します。</td>
+            <td>ログオンしていないユーザーの設定確認、サービスアカウントのユーザー設定調査。</td>
+          </tr>
+          <tr>
+            <td><code>HKEY_CURRENT_CONFIG</code></td>
+            <td>現在のハードウェア構成に関する情報です。</td>
+            <td>通常の業務アプリ調査では頻度は低いが、デバイス関連調査で見ることがあります。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="point">
+        <strong>基本の見方：</strong>
+        マシン全体の設定はHKLM、ユーザーごとの設定はHKCUとして切り分けると、手動実行とサービス実行の違いを理解しやすくなります。
+      </div>
+    </section>
+
+    <section id="app-os-settings" class="card">
+      <h2>3. アプリ設定とOS設定</h2>
+      <p>
+        Windowsアプリは、設定ファイルだけでなくレジストリに設定を保存することがあります。
+        特に、インストーラーで導入するデスクトップアプリ、古い業務アプリ、COMを使うアプリ、ドライバやサービスを伴うアプリでは、レジストリが重要になります。
+      </p>
+      <p>
+        OS側でも、サービス定義、起動設定、デバイス、ネットワーク、セキュリティ、ファイル関連付けなど、多くの情報がレジストリに保存されます。
+        ただし、すべての設定をレジストリで管理しているわけではなく、設定ファイル、管理DB、クラウドポリシー、グループポリシーも関係します。
+      </p>
+      <div class="diagram">
+        <div class="diagram-box">アプリ本体<small>EXE、DLL、ランタイム</small></div>
+        <div class="diagram-box">設定ファイル<small>JSON、XML、INI、config</small></div>
+        <div class="diagram-box">レジストリ<small>インストール情報、関連付け、ポリシー</small></div>
+        <div class="diagram-box">ログ<small>イベントログ、アプリログ</small></div>
+      </div>
+      <div class="success">
+        <strong>調査の考え方：</strong>
+        アプリの設定値が見つからない場合、設定ファイル、環境変数、レジストリ、グループポリシー、アプリ管理画面を分けて確認します。
+      </div>
+    </section>
+
+    <section id="policy" class="card">
+      <h2>4. グループポリシーとの関係</h2>
+      <p>
+        企業環境では、グループポリシーによってWindows端末やユーザーの設定を一括管理します。
+        グループポリシーで配布された設定の一部は、レジストリに反映されます。
+        そのため、レジストリ上の値を手で変更しても、次回のポリシー適用で戻ることがあります。
+      </p>
+      <p>
+        ポリシーが関係する設定は、利用者やアプリから見ると「なぜか変更できない」「再起動すると戻る」「特定端末だけ違う」ように見える場合があります。
+        その場合、レジストリ単体ではなく、グループポリシーの適用結果も確認します。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. 管理者がポリシーを定義</strong><br />Active Directoryや端末管理基盤で、ユーザーや端末に適用する設定を決めます。</div>
+        <div class="flow-step"><strong>2. 端末へポリシーが適用</strong><br />ログオン時、起動時、定期更新、手動更新などで設定が反映されます。</div>
+        <div class="flow-step"><strong>3. レジストリに反映</strong><br />一部のポリシーはレジストリ値として保存され、OSやアプリが参照します。</div>
+        <div class="flow-step"><strong>4. アプリやOSの動作が変わる</strong><br />プロキシ、セキュリティ設定、更新設定、ブラウザ設定などに影響します。</div>
+      </div>
+      <div class="warning">
+        <strong>注意：</strong>
+        管理された環境でポリシー由来のレジストリ値を手動変更しても、恒久対応にならない場合があります。原因がポリシーなら、管理元での修正が必要です。
+      </div>
+    </section>
+
+    <section id="permissions" class="card">
+      <h2>5. レジストリの権限</h2>
+      <p>
+        レジストリにもファイルシステムと同じように権限があります。
+        キーごとに、読み取り、値の設定、サブキー作成、所有者、監査などを制御できます。
+        権限不足により、アプリが設定を読めない、書き込めない、サービス起動時だけ失敗することがあります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>観点</th>
+            <th>確認内容</th>
+            <th>実務での例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>読み取り権限</td>
+            <td>アプリやサービスが設定値を読めるか。</td>
+            <td>サービスアカウントでは設定参照に失敗する。</td>
+          </tr>
+          <tr>
+            <td>書き込み権限</td>
+            <td>設定値やサブキーを作成・変更できるか。</td>
+            <td>初回起動時の設定保存やライセンス情報保存に失敗する。</td>
+          </tr>
+          <tr>
+            <td>ユーザー差異</td>
+            <td>HKCUの参照先が実行ユーザーごとに違う。</td>
+            <td>手動実行では動くが、タスクスケジューラやサービスでは動かない。</td>
+          </tr>
+          <tr>
+            <td>32bit / 64bit差異</td>
+            <td>32bitアプリが別のレジストリビューを参照する場合がある。</td>
+            <td>本番だけCOM登録やODBC設定が見つからない。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="point">
+        <strong>第4章との接続：</strong>
+        レジストリ調査でも、実行ユーザー、グループ、管理者権限、UAC、サービスアカウントを分けて考える必要があります。
+      </div>
+    </section>
+
+    <section id="backup-risk" class="card">
+      <h2>6. 直接編集の危険性とバックアップ</h2>
+      <p>
+        レジストリは、レジストリエディターやコマンドで編集できます。
+        しかし、直接編集は影響範囲が大きく、間違えるとアプリが起動しない、サービスが動かない、ログオンやOS設定に影響する場合があります。
+      </p>
+      <p>
+        変更が必要な場合は、変更理由、対象キー、変更前の値、変更後の値、戻し方を記録します。
+        可能であれば、アプリの管理画面、インストーラー、グループポリシー、PowerShellの管理コマンドなど、正式な設定手段を優先します。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. 変更理由を明確にする</strong><br />何の不具合を解消するために、どの設定を変えるのかを記録します。</div>
+        <div class="flow-step"><strong>2. 対象範囲を限定する</strong><br />HKLMかHKCUか、端末全体かユーザー単位か、32bit / 64bit差異があるかを確認します。</div>
+        <div class="flow-step"><strong>3. 変更前にエクスポートする</strong><br />対象キーをバックアップし、戻せる状態にします。</div>
+        <div class="flow-step"><strong>4. 変更後に動作確認する</strong><br />アプリ、サービス、イベントログ、ポリシー再適用後の状態を確認します。</div>
+      </div>
+      <div class="warning">
+        <strong>安全な原則：</strong>
+        調査目的で広範囲のキーを削除したり、出典不明の.regファイルを取り込んだりしないでください。企業端末では変更管理の対象として扱います。
+      </div>
+    </section>
+
+    <section id="investigation" class="card">
+      <h2>7. 原因調査で見る場面</h2>
+      <p>
+        レジストリは、常に最初に見る対象ではありません。
+        まずは、エラーメッセージ、アプリログ、イベントログ、実行ユーザー、ファイル、通信、サービス状態を確認します。
+        その上で、設定値、関連付け、ポリシー、インストール状態が疑われる場合にレジストリを確認します。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>症状</th>
+            <th>レジストリで見る候補</th>
+            <th>合わせて見るもの</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>アプリが起動しない</td>
+            <td>インストール情報、COM登録、ランタイム設定、関連付け。</td>
+            <td>イベントログ、DLL、実行ファイル、権限、ランタイム。</td>
+          </tr>
+          <tr>
+            <td>ユーザーごとに挙動が違う</td>
+            <td>HKCU、HKEY_USERS、ユーザー単位ポリシー。</td>
+            <td>ユーザープロファイル、グループ、AppData、ポリシー適用結果。</td>
+          </tr>
+          <tr>
+            <td>サービスが起動しない</td>
+            <td>サービス定義、ImagePath、依存関係、実行アカウント周辺設定。</td>
+            <td>サービス管理、イベントログ、実行ファイル、権限。</td>
+          </tr>
+          <tr>
+            <td>設定が戻る</td>
+            <td>Policies配下の値、管理テンプレート由来の設定。</td>
+            <td>gpresult、グループポリシー、Intuneなどの管理基盤。</td>
+          </tr>
+          <tr>
+            <td>32bitアプリだけ失敗する</td>
+            <td>WOW6432Node、32bit側のCOMやODBC設定。</td>
+            <td>プロセスのbit数、DLL、ODBC管理ツール、ランタイム。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="operations" class="card">
+      <h2>8. 実務での観点</h2>
+      <p>
+        業務システム運用では、レジストリは「変更する場所」よりも「設定の由来を確認する場所」として扱うことが多くなります。
+        変更する場合も、手作業ではなく、インストーラー、管理コマンド、グループポリシー、構成管理ツールで再現可能にすることが重要です。
+      </p>
+      <ul>
+        <li>同じ設定でも、HKLMとHKCUのどちらにあるかで影響範囲が変わります。</li>
+        <li>サービスやIISでは、対話ユーザーのHKCUではなく、実行アカウントの設定が関係します。</li>
+        <li>グループポリシー由来の設定は、手動変更しても戻る場合があります。</li>
+        <li>32bit / 64bit差異により、見ているレジストリビューが違う場合があります。</li>
+        <li>変更時は、対象キー、変更前後の値、実施者、日時、戻し手順を記録します。</li>
+      </ul>
+      <div class="success">
+        <strong>運用の型：</strong>
+        レジストリは、ファイル、権限、プロセス、サービス、通信、ログと組み合わせて確認すると、設定起因の問題を切り分けやすくなります。
+      </div>
+    </section>
+
+    <section id="commands" class="card">
+      <h2>9. コマンド例</h2>
+      <p>
+        レジストリはGUIのレジストリエディターだけでなく、cmdやPowerShellでも確認できます。
+        コマンドで確認すると、調査結果を記録しやすく、複数端末の比較にも使えます。
+      </p>
+      <table class="command-table">
+        <thead>
+          <tr>
+            <th>目的</th>
+            <th>コマンド例</th>
+            <th>確認できること</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>キーの確認</td>
+            <td><code>reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion"</code></td>
+            <td>指定キー配下の値やサブキーを確認できます。</td>
+          </tr>
+          <tr>
+            <td>値の取得</td>
+            <td><code>Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer"</code></td>
+            <td>PowerShellでレジストリ値をオブジェクトとして確認できます。</td>
+          </tr>
+          <tr>
+            <td>対象キーのバックアップ</td>
+            <td><code>reg export "HKCU\Software\Example" backup.reg</code></td>
+            <td>変更前に対象キーを.regファイルへエクスポートできます。</td>
+          </tr>
+          <tr>
+            <td>サービス定義確認</td>
+            <td><code>reg query "HKLM\SYSTEM\CurrentControlSet\Services\サービス名"</code></td>
+            <td>サービスのImagePathや依存関係に近い情報を確認できます。</td>
+          </tr>
+          <tr>
+            <td>ポリシー適用結果</td>
+            <td><code>gpresult /r</code></td>
+            <td>レジストリ値の背景にあるグループポリシー適用状況を確認できます。</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+reg export "HKCU\Software\ExampleApp" "%USERPROFILE%\Desktop\ExampleApp-backup.reg"
+Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion"
+Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services" | Select-Object -First 10</code></pre>
+      <div class="warning">
+        <strong>変更コマンドの注意：</strong>
+        <code>reg add</code> や <code>reg delete</code> は実際に設定を変更します。本番環境では、事前バックアップ、影響確認、戻し手順、変更記録を用意してから実行します。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>第7章のまとめ</h2>
+      <ol class="summary-list">
+        <li>レジストリは、Windowsやアプリケーションが利用する階層型の設定データベースである。</li>
+        <li>HKLMはマシン全体、HKCUは現在ユーザーの設定として理解すると切り分けやすい。</li>
+        <li>アプリ設定は、設定ファイル、環境変数、レジストリ、ポリシーなど複数の場所に分かれることがある。</li>
+        <li>グループポリシーで配布された設定は、レジストリに反映され、手動変更しても戻る場合がある。</li>
+        <li>レジストリにも権限があり、実行ユーザーやサービスアカウントによって読み書き可否が変わる。</li>
+        <li>32bit / 64bit差異により、参照するレジストリビューが異なる場合がある。</li>
+        <li>直接編集する場合は、対象キーのバックアップ、変更前後の記録、戻し手順が必要である。</li>
+        <li>レジストリ調査は、ログ、ファイル、権限、プロセス、サービス、通信と合わせて行う。</li>
+      </ol>
+    </section>
+
+    <section id="quiz" class="card">
+      <h2>10. 理解度チェック</h2>
+
+      <div class="quiz">
+        <h3>Q1. レジストリとは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            Windowsやアプリケーションが利用する階層型の設定データベースです。
+            OS設定、アプリ設定、サービス、関連付け、ポリシー、インストール情報などが保存されます。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q2. HKLMとHKCUの違いは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            HKLMは端末やサーバー全体に関係するマシン単位の設定です。
+            HKCUは現在ログオンしているユーザーの設定です。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q3. グループポリシーとレジストリはどのように関係しますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            グループポリシーで配布された設定の一部は、レジストリ値として端末やユーザーに反映されます。
+            手動で変更しても、次回のポリシー適用で戻る場合があります。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q4. レジストリを直接編集する前に確認すべきことは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            変更理由、対象キー、影響範囲、変更前の値、バックアップ、戻し手順、変更後の確認方法、変更記録を確認します。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q5. 手動実行では動くがサービスでは動かない場合、レジストリ面で何を疑いますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            サービス実行ユーザーが異なるためHKCUの参照先が違う、レジストリキーの読み取り権限がない、32bit / 64bitのレジストリビューが違う、ポリシー適用状態が違う、といった点を疑います。
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>次章への接続</h2>
+      <p>
+        第7章では、Windowsの設定基盤であるレジストリを扱いました。
+        第8章では、OSやアプリケーションが何を記録しているかを確認するために、イベントログとトラブルシューティングを学びます。
+        設定値を確認するだけでなく、変更や失敗がログにどう残るかを見られるようになると、障害調査の精度が上がります。
+      </p>
+      <div class="success">
+        <strong>第8章の入口：</strong>
+        レジストリが「設定の現在値」を示すのに対し、イベントログは「何が起きたか」の時系列を示します。
+      </div>
+    </section>
+
     <nav class="chapter-nav" aria-label="章ナビゲーション">
       <a href="chapter-06.html">前章：第6章 ネットワーク基礎</a>
       <a href="../index.html">目次へ戻る</a>
       <a href="chapter-08.html">次章：第8章 イベントログとトラブルシューティング</a>
     </nav>
-    <p class="footer">Windows OS教養講座 / 第7章 レジストリ</p>
+
+    <p class="footer">
+      Windows OS教養講座 / 第7章 レジストリ
+    </p>
   </main>
 </body>
 </html>
