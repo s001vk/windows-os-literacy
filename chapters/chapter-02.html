@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows OS教養講座 第2章 Windowsの基本構造</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="label">Windows OS教養講座 第2章</div>
+      <h1>Windowsの基本構造</h1>
+      <p>
+        Windows内部で、アプリケーション、プロセス、スレッド、サービス、ドライバ、DLL、レジストリ、ログがどのように関係しているかを学びます。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>この章の目的</h2>
+      <p>
+        第1章では、Windowsを企業システムの基盤として見るための全体像を扱いました。
+        第2章では、その基盤の内部構造を、障害調査や運用で使える粒度に分解します。
+      </p>
+      <p>
+        業務システムでは、「アプリが起動しない」「サービスが落ちる」「通信できない」「ログが出ない」といった問題を扱います。
+        これらはアプリケーションだけでなく、OSの実行管理、権限、設定、ドライバ、イベントログと結び付いています。
+      </p>
+      <div class="point">
+        <strong>この章のゴール：</strong>
+        Windows上でアプリケーションが動くとき、裏側でどの部品が関係しているかを説明できるようになることです。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>目次</h2>
+      <ul class="toc">
+        <li><a href="#kernel">1. カーネルの役割</a></li>
+        <li><a href="#mode">2. ユーザーモードとカーネルモード</a></li>
+        <li><a href="#process-thread">3. プロセスとスレッド</a></li>
+        <li><a href="#service-driver">4. サービスとドライバ</a></li>
+        <li><a href="#dll">5. DLLと共有ライブラリ</a></li>
+        <li><a href="#settings-logs">6. レジストリ、ファイルシステム、イベントログ</a></li>
+        <li><a href="#app-flow">7. アプリが動くときに起きていること</a></li>
+        <li><a href="#operations">8. 実務での観点</a></li>
+        <li><a href="#commands">9. コマンド例</a></li>
+        <li><a href="#quiz">10. 理解度チェック</a></li>
+      </ul>
+    </section>
+
+    <section id="kernel" class="card">
+      <h2>1. カーネルの役割</h2>
+      <p>
+        カーネルは、OSの中核です。
+        CPU、メモリ、ディスク、ネットワーク、プロセス、スレッド、デバイスなどを管理し、アプリケーションが直接ハードウェアを扱わなくてもよいようにします。
+      </p>
+      <p>
+        たとえば業務アプリがファイルを読み込むとき、アプリはディスク装置を直接制御しているわけではありません。
+        WindowsのAPIを呼び出し、その要求がファイルシステムやデバイスドライバを通じて処理されます。
+      </p>
+      <div class="diagram">
+        <div class="diagram-box">業務アプリ<small>EXE、DLL、.NET、Javaなど</small></div>
+        <div class="diagram-box">Windows API<small>ファイル、通信、画面、認証の呼び出し口</small></div>
+        <div class="diagram-box">カーネル<small>CPU、メモリ、I/O、プロセスを管理</small></div>
+        <div class="diagram-box">ハードウェア<small>ディスク、NIC、USB、画面</small></div>
+      </div>
+      <div class="point">
+        <strong>重要：</strong>
+        カーネルは見えにくい存在ですが、アプリケーションの実行、通信、ファイルアクセス、デバイス利用の土台です。
+      </div>
+    </section>
+
+    <section id="mode" class="card">
+      <h2>2. ユーザーモードとカーネルモード</h2>
+      <p>
+        Windowsでは、アプリケーションが動く領域と、OSの中核が動く領域を分けています。
+        代表的にはユーザーモードとカーネルモードです。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>領域</th>
+            <th>主な実行対象</th>
+            <th>特徴</th>
+            <th>障害時の見方</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ユーザーモード</td>
+            <td>通常のアプリケーション、ユーザーサービスの一部</td>
+            <td>直接ハードウェアに触れない。異常終了してもOS全体への影響を抑えやすい。</td>
+            <td>アプリクラッシュ、例外、権限不足、依存DLL不足を疑う。</td>
+          </tr>
+          <tr>
+            <td>カーネルモード</td>
+            <td>カーネル、デバイスドライバ、低レベルI/O</td>
+            <td>強い権限で動く。問題が起きるとOS全体に影響する場合がある。</td>
+            <td>ドライバ不具合、ハードウェア、OS更新後の互換性を疑う。</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        この分離により、通常アプリの不具合がすぐにOS全体の停止へつながらないよう設計されています。
+        ただし、デバイスドライバやセキュリティ製品のようにカーネルに近い領域で動くものは、影響範囲が大きくなりやすい点に注意が必要です。
+      </p>
+    </section>
+
+    <section id="process-thread" class="card">
+      <h2>3. プロセスとスレッド</h2>
+      <p>
+        プロセスは、実行中のプログラムの単位です。
+        メモリ空間、実行ファイル、開いているファイル、環境変数、権限情報などを持ちます。
+        タスクマネージャーで見えるアプリやバックグラウンド処理の多くは、プロセスとして確認できます。
+      </p>
+      <p>
+        スレッドは、プロセス内で実際に処理を進める実行単位です。
+        1つのプロセスが複数のスレッドを持つことで、画面描画、通信待ち、計算処理、ファイル読み書きを並行して扱えます。
+      </p>
+      <div class="diagram">
+        <div class="diagram-box">プロセス<small>メモリ空間、権限、環境変数を持つ</small></div>
+        <div class="diagram-box">スレッドA<small>画面処理</small></div>
+        <div class="diagram-box">スレッドB<small>通信処理</small></div>
+        <div class="diagram-box">スレッドC<small>ファイル処理</small></div>
+      </div>
+      <div class="warning">
+        <strong>障害調査の注意：</strong>
+        「アプリが重い」という症状でも、CPUを使っているプロセス、待機しているスレッド、ディスクI/O、ネットワーク待ちのどれが原因かで調査方法が変わります。
+      </div>
+    </section>
+
+    <section id="service-driver" class="card">
+      <h2>4. サービスとドライバ</h2>
+      <p>
+        Windowsサービスは、ユーザーが画面で操作していなくてもバックグラウンドで動くプログラムです。
+        データベース、監視エージェント、ウイルス対策、更新管理、ジョブ実行、Webアプリの補助処理などで使われます。
+      </p>
+      <p>
+        ドライバは、OSとハードウェアや低レベル機能をつなぐソフトウェアです。
+        プリンタ、ネットワークアダプタ、ストレージ、セキュリティ製品、仮想化製品などで重要です。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>要素</th>
+            <th>役割</th>
+            <th>実務で見る場面</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>サービス</td>
+            <td>常駐処理、起動時実行、管理者が状態を制御する処理</td>
+            <td>起動失敗、停止、実行ユーザー、依存サービス、ログ確認</td>
+          </tr>
+          <tr>
+            <td>ドライバ</td>
+            <td>デバイスや低レベル機能をOSから使えるようにする</td>
+            <td>周辺機器不具合、通信断、OS更新後の問題、ブルースクリーン</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="dll" class="card">
+      <h2>5. DLLと共有ライブラリ</h2>
+      <p>
+        DLLは、Windowsで使われる共有ライブラリです。
+        複数のアプリケーションが共通の処理を再利用できるようにする仕組みで、画面表示、暗号化、通信、ランタイム、業務アプリ固有の部品などに使われます。
+      </p>
+      <p>
+        DLLが見つからない、バージョンが違う、32bit版と64bit版を取り違える、といった問題は、Windowsアプリの典型的な実行トラブルです。
+        特に開発端末では動くが本番端末では動かない場合、依存DLLやランタイムの差異を確認します。
+      </p>
+      <div class="point">
+        <strong>見るべき観点：</strong>
+        EXE単体だけでアプリが動くとは限りません。DLL、.NET、Visual C++ Redistributable、Java Runtime、環境変数、PATHなどの依存関係も実行条件です。
+      </div>
+    </section>
+
+    <section id="settings-logs" class="card">
+      <h2>6. レジストリ、ファイルシステム、イベントログ</h2>
+      <p>
+        Windowsの実行環境は、プログラム本体だけでは決まりません。
+        設定、ファイル配置、ログ出力先、ユーザー権限、OSポリシーが組み合わさって動作が決まります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>基盤</th>
+            <th>役割</th>
+            <th>調査で見るポイント</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>レジストリ</td>
+            <td>OSやアプリの構成情報を階層的に保持する設定データベース</td>
+            <td>設定値、ポリシー、インストール情報、起動設定</td>
+          </tr>
+          <tr>
+            <td>ファイルシステム</td>
+            <td>実行ファイル、設定ファイル、ログ、データを保存する</td>
+            <td>存在確認、パス、NTFS権限、容量、ロック</td>
+          </tr>
+          <tr>
+            <td>イベントログ</td>
+            <td>OS、サービス、セキュリティ、アプリの重要な事象を記録する</td>
+            <td>エラー、警告、イベントID、発生時刻、サービス起動失敗</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        これらは第3章以降で詳しく扱います。
+        この章では、アプリの実行は「EXEを起動するだけ」ではなく、設定とログの基盤に支えられている点を押さえてください。
+      </p>
+    </section>
+
+    <section id="app-flow" class="card">
+      <h2>7. アプリが動くときに起きていること</h2>
+      <p>
+        Windowsでアプリケーションを起動すると、概念的には次のような流れが発生します。
+        実際の処理はアプリや環境により異なりますが、障害調査ではこの順に確認すると整理しやすくなります。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. 実行ファイルを探す</strong><br />ショートカット、PATH、サービス定義、タスク定義などからEXEやスクリプトを特定します。</div>
+        <div class="flow-step"><strong>2. 実行ユーザーを決める</strong><br />ログオンユーザー、サービスアカウント、管理者権限の有無が決まります。</div>
+        <div class="flow-step"><strong>3. プロセスを作る</strong><br />メモリ空間、環境変数、ハンドル、権限トークンを持つプロセスが生成されます。</div>
+        <div class="flow-step"><strong>4. DLLや設定を読み込む</strong><br />依存DLL、設定ファイル、レジストリ、証明書、環境変数を参照します。</div>
+        <div class="flow-step"><strong>5. ファイルや通信を使う</strong><br />データベース、共有フォルダ、HTTP API、DNS、ポート、Firewallが関係します。</div>
+        <div class="flow-step"><strong>6. ログを出す</strong><br />アプリログ、イベントログ、標準出力、監視ログに結果やエラーが残ります。</div>
+      </div>
+      <div class="success">
+        <strong>運用での使い方：</strong>
+        起動できない場合は、実行ファイル、権限、依存DLL、設定、通信、ログの順に切り分けると、原因候補を狭めやすくなります。
+      </div>
+    </section>
+
+    <section id="operations" class="card">
+      <h2>8. 実務での観点</h2>
+      <p>
+        業務システムでは、Windowsの基本構造を知っていると、問題の層を分けて調査できます。
+        たとえば同じ「起動しない」でも、実行ファイルがない、DLLがない、権限がない、サービス実行ユーザーが違う、設定値が壊れている、OS更新後にドライバが合わないなど、原因は分かれます。
+      </p>
+      <ul>
+        <li>プロセスが存在するか、すぐ終了していないかを確認します。</li>
+        <li>サービスの場合は、起動種類、実行ユーザー、依存サービス、イベントログを確認します。</li>
+        <li>DLLやランタイム不足が疑われる場合は、導入済みコンポーネントとアプリのbit数を確認します。</li>
+        <li>権限が関係する場合は、ファイル、レジストリ、サービス操作、ネットワーク共有へのアクセス権を分けて確認します。</li>
+        <li>OS更新やドライバ更新後の問題では、変更時刻とイベントログを合わせて確認します。</li>
+      </ul>
+      <div class="warning">
+        <strong>よくある誤解：</strong>
+        「アプリの問題」と決めつけると、サービス実行ユーザー、DLL依存、Firewall、証明書、イベントログのようなOS側の原因を見落とします。
+      </div>
+    </section>
+
+    <section id="commands" class="card">
+      <h2>9. コマンド例</h2>
+      <p>
+        Windowsの基本構造を確認するには、GUIだけでなくコマンドで状態を取得できると再現性が高まります。
+      </p>
+      <table class="command-table">
+        <thead>
+          <tr>
+            <th>目的</th>
+            <th>コマンド例</th>
+            <th>確認できること</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>プロセス一覧</td>
+            <td><code>Get-Process</code></td>
+            <td>実行中のプロセス名、CPU、メモリ使用状況を確認できます。</td>
+          </tr>
+          <tr>
+            <td>サービス一覧</td>
+            <td><code>Get-Service</code></td>
+            <td>サービスの状態、名前、表示名を確認できます。</td>
+          </tr>
+          <tr>
+            <td>特定サービスの詳細</td>
+            <td><code>sc qc サービス名</code></td>
+            <td>起動種類、実行ファイルパス、依存関係などを確認できます。</td>
+          </tr>
+          <tr>
+            <td>イベントログ確認</td>
+            <td><code>Get-WinEvent -LogName System -MaxEvents 20</code></td>
+            <td>Systemログの直近イベントを確認できます。</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>Get-Process | Sort-Object CPU -Descending | Select-Object -First 10
+Get-Service | Where-Object Status -ne "Running"
+Get-WinEvent -LogName Application -MaxEvents 20</code></pre>
+      <p>
+        これらの結果だけで原因が確定するとは限りません。
+        ただし、プロセス、サービス、ログの現在状態を揃えることで、調査の出発点を作れます。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>第2章のまとめ</h2>
+      <ol class="summary-list">
+        <li>カーネルは、CPU、メモリ、I/O、プロセス、デバイスを管理するOSの中核である。</li>
+        <li>ユーザーモードとカーネルモードの分離により、通常アプリとOS中核の影響範囲を分けている。</li>
+        <li>プロセスは実行中プログラムの単位で、スレッドはプロセス内で処理を進める単位である。</li>
+        <li>Windowsサービスは、ログオンユーザーの画面操作とは独立して動く常駐処理である。</li>
+        <li>ドライバは、OSとハードウェアや低レベル機能をつなぐため、障害時の影響が大きい場合がある。</li>
+        <li>DLL、レジストリ、ファイルシステム、イベントログは、アプリ実行条件と調査材料になる。</li>
+        <li>「アプリが動く」とは、実行ファイル、権限、依存関係、設定、通信、ログが連携することである。</li>
+      </ol>
+    </section>
+
+    <section id="quiz" class="card">
+      <h2>10. 理解度チェック</h2>
+
+      <div class="quiz">
+        <h3>Q1. カーネルはWindowsの中でどのような役割を持ちますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            CPU、メモリ、ディスク、ネットワーク、プロセス、スレッド、デバイスなどを管理し、アプリケーションが安全にハードウェアやOS機能を利用できるようにします。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q2. ユーザーモードとカーネルモードを分ける理由は何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            通常アプリケーションの不具合がOS全体に直接影響しにくくするためです。
+            カーネルモードは強い権限を持つため、ドライバ不具合などはOS全体に影響する場合があります。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q3. プロセスとスレッドの違いは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            プロセスは実行中プログラムの単位で、メモリ空間や権限情報を持ちます。
+            スレッドはプロセス内で実際に処理を進める実行単位です。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q4. Windowsサービスの調査で確認すべき代表項目は何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            サービス状態、起動種類、実行ユーザー、実行ファイルパス、依存サービス、イベントログ、アプリケーションログを確認します。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q5. アプリが起動しない場合、EXE以外に確認すべきものは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            実行ユーザーの権限、依存DLL、ランタイム、設定ファイル、レジストリ、環境変数、通信先、証明書、イベントログなどを確認します。
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>次章への接続</h2>
+      <p>
+        第2章では、Windows内部の実行構造を扱いました。
+        第3章では、その実行構造を支えるファイルシステムとパスを学びます。
+        アプリ本体、設定ファイル、ログ、共有フォルダ、System32、ProgramData、AppDataの違いを理解すると、障害調査で見る場所が明確になります。
+      </p>
+      <div class="success">
+        <strong>第3章の入口：</strong>
+        Windowsでは「どこにファイルがあるか」と「どのユーザーがその場所にアクセスできるか」が、アプリ実行と運用調査の基本になります。
+      </div>
+    </section>
+
+    <nav class="chapter-nav" aria-label="章ナビゲーション">
+      <a href="chapter-01.html">前章：第1章 Windowsの全体像</a>
+      <a href="../index.html">目次へ戻る</a>
+      <a href="chapter-03.html">次章：第3章 ファイルシステムとパス</a>
+    </nav>
+
+    <p class="footer">
+      Windows OS教養講座 / 第2章 Windowsの基本構造
+    </p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows OS教養講座 第1章 Windowsの全体像</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="label">Windows OS教養講座 第1章</div>
+      <h1>Windowsの全体像</h1>
+      <p>
+        Windowsを「画面操作できるパソコン」ではなく、企業システム・認証・ネットワーク・運用管理の基盤として理解する。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>この章の目的</h2>
+      <p>
+        第1章では、Windowsを細かい機能単位で覚える前に、全体像をつかみます。
+        Windowsは、単なるデスクトップOSではありません。
+        企業では、端末管理、ユーザー認証、ファイル共有、Webアプリ運用、ログ監査、セキュリティ更新などを支える基盤として使われます。
+      </p>
+
+      <div class="point">
+        <strong>この章のゴール：</strong>
+        Windowsを「利用者向けOS」ではなく、「業務システムを動かす土台」として説明できるようになることです。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>目次</h2>
+      <ul class="toc">
+        <li><a href="#what-is-windows">1. Windowsとは何か</a></li>
+        <li><a href="#history">2. Windowsの歴史をざっくり理解する</a></li>
+        <li><a href="#client-server">3. クライアントOSとサーバーOS</a></li>
+        <li><a href="#windows10-11-server">4. Windows 10 / 11 / Serverの違い</a></li>
+        <li><a href="#gui-cli">5. GUIとCUI</a></li>
+        <li><a href="#enterprise">6. 企業でWindowsが使われる理由</a></li>
+        <li><a href="#linux-macos">7. Linux / macOSとの思想の違い</a></li>
+        <li><a href="#mental-model">8. Windowsを見るための思考モデル</a></li>
+        <li><a href="#quiz">9. 理解度チェック</a></li>
+      </ul>
+    </section>
+
+    <section id="what-is-windows" class="card">
+      <h2>1. Windowsとは何か</h2>
+
+      <p>
+        Windowsは、Microsoftが提供するオペレーティングシステムです。
+        オペレーティングシステムとは、コンピューターのハードウェアとアプリケーションの間に入り、
+        CPU、メモリ、ストレージ、ネットワーク、画面、キーボード、マウス、ユーザー権限などを管理する基本ソフトウェアです。
+      </p>
+
+      <p>
+        普段の利用者から見ると、Windowsはデスクトップ、スタートメニュー、エクスプローラー、設定画面のように見えます。
+        しかし、エンジニアとして見るべき本体は、それだけではありません。
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-box">
+          アプリケーション
+          <small>Excel、ブラウザ、業務アプリ</small>
+        </div>
+        <div class="diagram-box">
+          OS機能
+          <small>プロセス、権限、通信、ログ</small>
+        </div>
+        <div class="diagram-box">
+          ハードウェア
+          <small>CPU、メモリ、ディスク、NIC</small>
+        </div>
+        <div class="diagram-box">
+          ネットワーク
+          <small>DNS、認証、共有、通信</small>
+        </div>
+      </div>
+
+      <div class="point">
+        <strong>重要：</strong>
+        Windowsは「画面」ではなく、アプリケーションを安全に、継続的に、管理可能な状態で動かすための基盤です。
+      </div>
+    </section>
+
+    <section id="history" class="card">
+      <h2>2. Windowsの歴史をざっくり理解する</h2>
+
+      <p>
+        Windowsの歴史を細かく暗記する必要はありません。
+        教養として重要なのは、Windowsが次のような方向で発展してきたことです。
+      </p>
+
+      <ol class="summary-list">
+        <li>
+          <strong>個人向けのGUI環境</strong><br />
+          キーボード中心の操作から、マウスと画面中心の操作へ広げた。
+        </li>
+        <li>
+          <strong>企業向けの管理基盤</strong><br />
+          Active Directory、グループポリシー、Windows Serverにより、大量の端末とユーザーを管理できるようになった。
+        </li>
+        <li>
+          <strong>ネットワーク前提のOS</strong><br />
+          ファイル共有、認証、リモート接続、Webサーバー、クラウド連携が前提になった。
+        </li>
+        <li>
+          <strong>セキュリティ重視のOS</strong><br />
+          UAC、Defender、BitLocker、証明書、更新管理など、企業利用に必要な防御機能が強化されてきた。
+        </li>
+      </ol>
+
+      <p>
+        つまりWindowsは、個人の作業環境から始まり、企業の情報システム基盤へ拡張されてきたOSです。
+      </p>
+    </section>
+
+    <section id="client-server" class="card">
+      <h2>3. クライアントOSとサーバーOS</h2>
+
+      <p>
+        Windowsには、利用者が直接操作するクライアントOSと、業務サービスを提供するサーバーOSがあります。
+      </p>
+
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>分類</th>
+            <th>代表例</th>
+            <th>主な役割</th>
+            <th>見るべき観点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>クライアントOS</td>
+            <td>Windows 11</td>
+            <td>利用者が業務アプリ、ブラウザ、Office、開発ツールを使う端末</td>
+            <td>操作性、端末管理、セキュリティ、互換性</td>
+          </tr>
+          <tr>
+            <td>サーバーOS</td>
+            <td>Windows Server</td>
+            <td>認証、ファイル共有、Webアプリ、リモート接続、業務システムを提供する基盤</td>
+            <td>安定稼働、権限、ログ、監視、バックアップ、更新管理</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="point">
+        <strong>実務上の見方：</strong>
+        クライアントOSは「人が使う端末」、サーバーOSは「サービスを提供する基盤」と考えると整理しやすいです。
+      </div>
+    </section>
+
+    <section id="windows10-11-server" class="card">
+      <h2>4. Windows 10 / 11 / Serverの違い</h2>
+
+      <h3>Windows 10</h3>
+      <p>
+        Windows 10は長く企業利用されてきたクライアントOSです。
+        ただし、通常版はサポート終了済みとして扱う必要があります。
+        業務利用では、今後のセキュリティ更新、端末更改、アプリ互換性を含めて、Windows 11への移行を前提に考える場面が増えます。
+      </p>
+
+      <h3>Windows 11</h3>
+      <p>
+        Windows 11は現在の主流クライアントOSです。
+        個人利用だけでなく、企業利用ではPro、Enterprise、Educationなどのエディションが使われます。
+        セキュリティ要件、ハードウェア要件、管理機能、更新管理を含めて理解する必要があります。
+      </p>
+
+      <h3>Windows Server</h3>
+      <p>
+        Windows Serverは、企業システムの基盤として使われるサーバーOSです。
+        ファイルサーバー、Active Directory、DNS、IIS、リモートデスクトップ、業務アプリ実行基盤などの役割を持ちます。
+      </p>
+
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>Windows 10</th>
+            <th>Windows 11</th>
+            <th>Windows Server</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>主な用途</td>
+            <td>従来の業務端末</td>
+            <td>現在の業務端末</td>
+            <td>業務サービス提供</td>
+          </tr>
+          <tr>
+            <td>利用者</td>
+            <td>一般ユーザー、業務ユーザー</td>
+            <td>一般ユーザー、業務ユーザー</td>
+            <td>管理者、システム、業務アプリ</td>
+          </tr>
+          <tr>
+            <td>重視点</td>
+            <td>互換性、移行判断</td>
+            <td>セキュリティ、管理性、端末標準化</td>
+            <td>安定稼働、監視、認証、権限、復旧</td>
+          </tr>
+          <tr>
+            <td>実務での注意</td>
+            <td>サポート期限と更改計画</td>
+            <td>ハードウェア要件、更新管理</td>
+            <td>役割、ログ、バックアップ、権限設計</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="warning">
+        <strong>注意：</strong>
+        OSは「入っていればよい」ものではありません。
+        業務利用では、サポート期限、セキュリティ更新、アプリ互換性、運用ルールをセットで確認する必要があります。
+      </div>
+    </section>
+
+    <section id="gui-cli" class="card">
+      <h2>5. GUIとCUI</h2>
+
+      <p>
+        WindowsはGUIが強いOSです。
+        GUIとは、画面、ボタン、メニュー、ウィンドウを使って操作する方式です。
+        一方で、業務運用や障害調査ではCUIも重要です。
+        CUIとは、コマンドを入力して操作する方式です。
+      </p>
+
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>操作方式</th>
+            <th>特徴</th>
+            <th>向いている作業</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GUI</td>
+            <td>見て分かりやすい。単発作業に強い。</td>
+            <td>設定確認、手動操作、画面での調査</td>
+          </tr>
+          <tr>
+            <td>CUI</td>
+            <td>正確に再現できる。自動化しやすい。</td>
+            <td>ログ取得、一括確認、定期処理、運用自動化</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        WindowsのCUIには、主にコマンドプロンプトとPowerShellがあります。
+        現代のWindows管理では、PowerShellを優先的に学ぶ価値が高いです。
+      </p>
+
+      <pre><code>Get-Process
+Get-Service
+Get-EventLog -LogName System -Newest 10
+Test-NetConnection example.com -Port 443</code></pre>
+
+      <div class="point">
+        <strong>実務観点：</strong>
+        GUIで確認し、CUIで再現・記録・自動化する、という使い分けが基本です。
+      </div>
+    </section>
+
+    <section id="enterprise" class="card">
+      <h2>6. 企業でWindowsが使われる理由</h2>
+
+      <p>
+        企業でWindowsが広く使われる理由は、単に利用者が慣れているからではありません。
+        企業運用に必要な管理機能が豊富だからです。
+      </p>
+
+      <ol class="summary-list">
+        <li>
+          <strong>Active Directoryとの親和性</strong><br />
+          ユーザー、端末、グループ、権限を組織単位で管理しやすい。
+        </li>
+        <li>
+          <strong>Office製品との親和性</strong><br />
+          Excel、Word、PowerPoint、Outlook、Teamsなどの業務アプリと組み合わせやすい。
+        </li>
+        <li>
+          <strong>業務アプリ資産が多い</strong><br />
+          既存のWindows向け業務アプリ、周辺機器、ドライバ、社内ツールが多い。
+        </li>
+        <li>
+          <strong>端末管理がしやすい</strong><br />
+          グループポリシー、Intune、更新管理、セキュリティポリシーなどを使える。
+        </li>
+        <li>
+          <strong>運用・監査の仕組みがある</strong><br />
+          イベントログ、監査ログ、セキュリティログを使って、問題調査や証跡確認ができる。
+        </li>
+      </ol>
+
+      <div class="success">
+        <strong>押さえるべき本質：</strong>
+        企業におけるWindowsの強みは、個別PCの便利さではなく、組織全体を管理する仕組みにあります。
+      </div>
+    </section>
+
+    <section id="linux-macos" class="card">
+      <h2>7. Linux / macOSとの思想の違い</h2>
+
+      <p>
+        Windowsを理解するには、他のOSとの違いも見ておくと整理しやすいです。
+      </p>
+
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>OS</th>
+            <th>主な強み</th>
+            <th>思想の特徴</th>
+            <th>実務での使われ方</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Windows</td>
+            <td>企業端末、Office、Active Directory、業務アプリ互換性</td>
+            <td>GUIと企業管理の統合</td>
+            <td>社内PC、業務アプリ、Windows Server、IIS</td>
+          </tr>
+          <tr>
+            <td>Linux</td>
+            <td>サーバー、クラウド、コンテナ、自由度、自動化</td>
+            <td>小さな部品を組み合わせる</td>
+            <td>Webサーバー、クラウド基盤、Docker、開発環境</td>
+          </tr>
+          <tr>
+            <td>macOS</td>
+            <td>UI品質、クリエイティブ用途、Unix系開発環境</td>
+            <td>ハードウェアとOSの統合体験</td>
+            <td>デザイン、アプリ開発、個人開発端末</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        どのOSが優れているかではなく、目的が違います。
+        Windowsは、企業の業務端末と組織管理に強いOSです。
+        Linuxは、サーバーやクラウドで強いOSです。
+        macOSは、統合された利用体験と開発・制作環境に強いOSです。
+      </p>
+    </section>
+
+    <section id="mental-model" class="card">
+      <h2>8. Windowsを見るための思考モデル</h2>
+
+      <p>
+        Windowsを学ぶときは、機能名をバラバラに覚えるより、次の7層で考えると理解しやすくなります。
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-box">
+          1. 画面
+          <small>GUI、設定、エクスプローラー</small>
+        </div>
+        <div class="diagram-box">
+          2. アプリ
+          <small>EXE、DLL、.NET、Java</small>
+        </div>
+        <div class="diagram-box">
+          3. 実行単位
+          <small>プロセス、サービス、タスク</small>
+        </div>
+        <div class="diagram-box">
+          4. 権限
+          <small>ユーザー、グループ、UAC、NTFS</small>
+        </div>
+        <div class="diagram-box">
+          5. 通信
+          <small>IP、DNS、Firewall、Proxy</small>
+        </div>
+        <div class="diagram-box">
+          6. 設定
+          <small>レジストリ、環境変数、ポリシー</small>
+        </div>
+        <div class="diagram-box">
+          7. 証跡
+          <small>イベントログ、アプリログ、監査ログ</small>
+        </div>
+      </div>
+
+      <p>
+        障害調査でも、この層で見ると切り分けやすくなります。
+      </p>
+
+      <pre><code>アプリが動かない
+├─ ファイルは存在するか
+├─ 実行ユーザーに権限はあるか
+├─ 必要なサービスは起動しているか
+├─ 必要な通信は通るか
+├─ 設定値は正しいか
+├─ 証明書は正しいか
+└─ ログに何が出ているか</code></pre>
+
+      <div class="point">
+        <strong>この講座全体の見方：</strong>
+        Windowsを「ファイル、権限、プロセス、サービス、通信、設定、ログ」で見る習慣を作ることが重要です。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>第1章のまとめ</h2>
+
+      <ol class="summary-list">
+        <li>
+          Windowsは、画面操作のためだけのOSではなく、アプリ実行、権限管理、通信、ログ、セキュリティを担う基盤である。
+        </li>
+        <li>
+          クライアントOSは人が使う端末、サーバーOSはサービスを提供する基盤として理解する。
+        </li>
+        <li>
+          Windows 10、Windows 11、Windows Serverは、用途、ライフサイクル、運用観点が異なる。
+        </li>
+        <li>
+          GUIは確認しやすく、CUIは再現性と自動化に強い。
+        </li>
+        <li>
+          企業でWindowsが使われる理由は、Active Directory、Office、端末管理、業務アプリ互換性、監査機能にある。
+        </li>
+        <li>
+          Windowsは、ファイル、権限、プロセス、サービス、通信、設定、ログの層で見ると理解しやすい。
+        </li>
+      </ol>
+    </section>
+
+    <section id="quiz" class="card">
+      <h2>9. 理解度チェック</h2>
+
+      <div class="quiz">
+        <h3>Q1. Windowsを「画面操作のOS」とだけ見ると、何が不足しますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            プロセス、サービス、権限、ネットワーク、レジストリ、イベントログ、証明書、更新管理など、
+            業務システムを支える基盤としての視点が不足します。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q2. クライアントOSとサーバーOSの違いは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            クライアントOSは利用者が直接操作する端末向けです。
+            サーバーOSは、認証、ファイル共有、Webアプリ、業務サービスなどを提供する基盤向けです。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q3. GUIとCUIはどのように使い分けるべきですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            GUIは目視確認や単発作業に向いています。
+            CUIは再現性、一括処理、自動化、ログ取得に向いています。
+            実務では、GUIで確認し、CUIで再現・記録・自動化するのが有効です。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q4. 企業でWindowsが使われる主な理由を3つ挙げてください。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            Active Directoryによるユーザー・端末管理、Office製品との親和性、既存業務アプリとの互換性、
+            グループポリシーやIntuneによる端末管理、イベントログによる監査などが挙げられます。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q5. Windows障害調査で確認すべき代表的な観点は何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            ファイルの存在、実行ユーザーの権限、サービス状態、ネットワーク疎通、設定値、証明書、イベントログ、アプリケーションログなどです。
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>次章への接続</h2>
+
+      <p>
+        第1章ではWindowsの全体像を扱いました。
+        第2章では、Windows内部で何が動いているのかを理解するために、
+        カーネル、ユーザーモード、カーネルモード、プロセス、スレッド、サービス、ドライバ、DLL、レジストリ、イベントログを学びます。
+      </p>
+
+      <div class="success">
+        <strong>第2章の入口：</strong>
+        Windowsを理解する次の段階は、「アプリが動いている」のではなく、
+        「プロセス、スレッド、サービス、ドライバがOS上で管理されている」と見ることです。
+      </div>
+    </section>
+
+    <nav class="chapter-nav" aria-label="章ナビゲーション">
+      <span>前章なし</span>
+      <a href="../index.html">目次へ戻る</a>
+      <a href="chapter-02.html">次章：第2章 Windowsの基本構造</a>
+    </nav>
+
+    <p class="footer">
+      Windows OS教養講座 / 第1章 Windowsの全体像
+    </p>
+  </main>
+</body>
+</html>

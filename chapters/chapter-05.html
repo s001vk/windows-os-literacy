@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows OS教養講座 第5章 プロセスとサービス</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="label">Windows OS教養講座 第5章</div>
+      <h1>プロセスとサービス</h1>
+      <p>
+        アプリケーション、プロセス、スレッド、バックグラウンドプロセス、Windowsサービス、スタートアップ、タスクスケジューラを運用目線で学びます。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>この章の目的</h2>
+      <p>
+        第4章では、Windowsで処理を実行するユーザーと権限を扱いました。
+        第5章では、その権限を持つ実体が、プロセスやサービスとしてどのように動いているかを確認します。
+      </p>
+      <p>
+        業務アプリの運用では、プロセスが起動しているか、サービスが停止していないか、バックグラウンド処理が詰まっていないか、どのプロセスがポートを使っているかを調べる場面が多くあります。
+      </p>
+      <div class="point">
+        <strong>この章のゴール：</strong>
+        Windows上で動く処理を、アプリ、プロセス、スレッド、サービス、タスク、実行ユーザーに分けて確認できるようになることです。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>目次</h2>
+      <ul class="toc">
+        <li><a href="#app-process">1. アプリケーションとプロセス</a></li>
+        <li><a href="#thread-background">2. スレッドとバックグラウンドプロセス</a></li>
+        <li><a href="#windows-service">3. Windowsサービス</a></li>
+        <li><a href="#task-manager">4. タスクマネージャーで見ること</a></li>
+        <li><a href="#service-control">5. サービス管理</a></li>
+        <li><a href="#startup-scheduler">6. スタートアップとタスクスケジューラ</a></li>
+        <li><a href="#port-process">7. ポートを使っているプロセス</a></li>
+        <li><a href="#operations">8. 実務での観点</a></li>
+        <li><a href="#commands">9. コマンド例</a></li>
+        <li><a href="#quiz">10. 理解度チェック</a></li>
+      </ul>
+    </section>
+
+    <section id="app-process" class="card">
+      <h2>1. アプリケーションとプロセス</h2>
+      <p>
+        アプリケーションは、利用者やシステムに機能を提供するソフトウェアです。
+        実行されると、Windows上ではプロセスとして管理されます。
+        プロセスは、実行ファイル、メモリ、権限、環境変数、開いているファイルや通信などを持つ単位です。
+      </p>
+      <p>
+        同じアプリケーションでも、複数のプロセスを起動することがあります。
+        たとえばブラウザ、開発ツール、業務クライアント、更新エージェントなどは、UI用、通信処理用、拡張機能用、監視用などにプロセスを分ける場合があります。
+      </p>
+      <div class="diagram">
+        <div class="diagram-box">アプリケーション<small>利用者や業務へ機能を提供</small></div>
+        <div class="diagram-box">プロセス<small>Windowsが管理する実行単位</small></div>
+        <div class="diagram-box">権限トークン<small>誰として実行しているか</small></div>
+        <div class="diagram-box">リソース<small>CPU、メモリ、ファイル、通信</small></div>
+      </div>
+      <div class="point">
+        <strong>確認の基本：</strong>
+        「アプリが起動しているか」は、画面が出ているかだけでなく、該当プロセスが存在するか、異常終了していないかで確認します。
+      </div>
+    </section>
+
+    <section id="thread-background" class="card">
+      <h2>2. スレッドとバックグラウンドプロセス</h2>
+      <p>
+        スレッドは、プロセス内で処理を進める実行単位です。
+        1つのプロセス内に複数のスレッドがあり、画面描画、通信待ち、ファイル処理、計算処理などを並行して進めます。
+      </p>
+      <p>
+        バックグラウンドプロセスは、ユーザーが直接操作していない状態でも動く処理です。
+        通知、同期、更新確認、監視、ログ収集、ウイルス対策、クラウド連携などが該当します。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>分類</th>
+            <th>特徴</th>
+            <th>運用で見るポイント</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>フォアグラウンドアプリ</td>
+            <td>画面を持ち、利用者が操作する。</td>
+            <td>応答なし、画面停止、ユーザー権限、クラッシュログ。</td>
+          </tr>
+          <tr>
+            <td>バックグラウンドプロセス</td>
+            <td>画面がなくても常駐または短時間実行される。</td>
+            <td>CPU・メモリ使用率、通信、ログ、起動条件。</td>
+          </tr>
+          <tr>
+            <td>サービス</td>
+            <td>Service Control Managerにより管理される常駐処理。</td>
+            <td>起動種類、状態、実行ユーザー、依存関係。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="warning">
+        <strong>注意：</strong>
+        画面がない処理ほど、利用者からは状態が見えません。イベントログ、アプリログ、サービス状態、監視結果で確認する必要があります。
+      </div>
+    </section>
+
+    <section id="windows-service" class="card">
+      <h2>3. Windowsサービス</h2>
+      <p>
+        Windowsサービスは、Service Control Managerによって起動、停止、再起動、状態管理されるバックグラウンド処理です。
+        ログオンユーザーがいなくても動作できるため、サーバーアプリ、監視エージェント、ジョブ処理、同期処理などで使われます。
+      </p>
+      <p>
+        サービスには、起動種類、状態、実行ファイルパス、実行ユーザー、依存サービスがあります。
+        サービスが動かないときは、これらを順に確認します。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. 起動種類</strong><br />自動、手動、無効など。OS起動時に動くべきかを確認します。</div>
+        <div class="flow-step"><strong>2. 状態</strong><br />Running、Stoppedなど。異常終了や停止中でないかを確認します。</div>
+        <div class="flow-step"><strong>3. 実行ユーザー</strong><br />LocalSystem、NetworkService、ローカルユーザー、ドメインユーザーなど。</div>
+        <div class="flow-step"><strong>4. 依存関係</strong><br />必要なサービスが先に起動しているかを確認します。</div>
+        <div class="flow-step"><strong>5. ログ</strong><br />イベントログとアプリログで起動失敗理由を確認します。</div>
+      </div>
+    </section>
+
+    <section id="task-manager" class="card">
+      <h2>4. タスクマネージャーで見ること</h2>
+      <p>
+        タスクマネージャーは、現在のプロセス、CPU、メモリ、ディスク、ネットワーク、スタートアップ、ユーザー、サービスを確認できる標準ツールです。
+        初期調査では非常に有用ですが、表示は現在状態のスナップショットであり、過去の原因までは直接示しません。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>タブ</th>
+            <th>確認できること</th>
+            <th>実務での使い方</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>プロセス</td>
+            <td>CPU、メモリ、ディスク、ネットワーク使用量</td>
+            <td>高負荷プロセス、応答なしアプリ、異常な常駐処理を確認する。</td>
+          </tr>
+          <tr>
+            <td>詳細</td>
+            <td>PID、ユーザー名、プロセス名</td>
+            <td>ポート番号やログとPIDを突き合わせる。</td>
+          </tr>
+          <tr>
+            <td>スタートアップ</td>
+            <td>ログオン時に起動するアプリ</td>
+            <td>起動遅延や不要常駐を確認する。</td>
+          </tr>
+          <tr>
+            <td>サービス</td>
+            <td>サービス状態</td>
+            <td>対象サービスが起動しているかを素早く確認する。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="service-control" class="card">
+      <h2>5. サービス管理</h2>
+      <p>
+        サービスは、サービス管理ツール、PowerShell、<code>sc</code> コマンドなどで管理できます。
+        本番環境でサービスを操作する場合は、業務影響、依存関係、再起動手順、監視通知を確認してから実施します。
+      </p>
+      <p>
+        サービスが起動しない場合、実行ファイルが存在しない、実行ユーザーのパスワードが変わった、依存サービスが停止している、ポートが競合している、設定ファイルに問題がある、権限が不足している、といった原因が考えられます。
+      </p>
+      <div class="warning">
+        <strong>運用上の注意：</strong>
+        サービスの強制終了や自動再起動設定は、原因調査を難しくすることがあります。ログと状態を確認し、作業記録を残した上で操作します。
+      </div>
+    </section>
+
+    <section id="startup-scheduler" class="card">
+      <h2>6. スタートアップとタスクスケジューラ</h2>
+      <p>
+        スタートアップは、ユーザーのログオン時にアプリを起動する仕組みです。
+        一方、タスクスケジューラは、時刻、ログオン、イベント発生、定期周期などの条件で処理を実行する仕組みです。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>仕組み</th>
+            <th>起動条件</th>
+            <th>向いている用途</th>
+            <th>注意点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>スタートアップ</td>
+            <td>ユーザーのログオン</td>
+            <td>利用者向け常駐アプリ、補助ツール</td>
+            <td>ログオンしていないと動かない。</td>
+          </tr>
+          <tr>
+            <td>タスクスケジューラ</td>
+            <td>時刻、周期、イベント、ログオンなど</td>
+            <td>バッチ、ログ収集、ファイル転送、定期処理</td>
+            <td>実行ユーザー、作業フォルダ、終了コード、ログ保存が重要。</td>
+          </tr>
+          <tr>
+            <td>Windowsサービス</td>
+            <td>OS起動時、手動、依存関係</td>
+            <td>常駐サーバー処理、監視、バックグラウンドサービス</td>
+            <td>サービス化に適した実装と停止処理が必要。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="point">
+        <strong>使い分け：</strong>
+        定期的に終わる処理はタスクスケジューラ、常駐して要求を待つ処理はサービス、利用者操作に寄り添う処理はスタートアップが候補になります。
+      </div>
+    </section>
+
+    <section id="port-process" class="card">
+      <h2>7. ポートを使っているプロセス</h2>
+      <p>
+        Webアプリ、DB、API、リモート接続、監視エージェントなどは、特定のポート番号を使って通信します。
+        起動に失敗する原因の一つに、既に別プロセスが同じポートを使用しているケースがあります。
+      </p>
+      <p>
+        ポートを調べるときは、ポート番号、LISTEN状態、PID、プロセス名を結び付けます。
+        さらに、そのプロセスが正規のサービスか、想定外のアプリかを確認します。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. ポート番号を確認</strong><br />アプリ設定、IISバインド、ログ、エラーメッセージから対象ポートを確認します。</div>
+        <div class="flow-step"><strong>2. LISTENしているPIDを確認</strong><br />netstatやPowerShellでポートとPIDを取得します。</div>
+        <div class="flow-step"><strong>3. PIDからプロセス名を確認</strong><br />タスクマネージャーやGet-Processでプロセスを特定します。</div>
+        <div class="flow-step"><strong>4. サービスや設定と照合</strong><br />そのプロセスが想定されたサービスか、競合している別アプリかを確認します。</div>
+      </div>
+    </section>
+
+    <section id="operations" class="card">
+      <h2>8. 実務での観点</h2>
+      <p>
+        プロセスとサービスの理解は、障害初動、運用監視、性能調査、リリース作業に直結します。
+        「動いているか」を確認するだけでなく、「誰として」「どの設定で」「何に依存して」「どのリソースを使って」動いているかを確認します。
+      </p>
+      <ul>
+        <li>高負荷時は、CPU、メモリ、ディスクI/O、ネットワーク、スレッド待ちを分けて確認します。</li>
+        <li>サービス停止時は、イベントログ、アプリログ、依存サービス、実行ユーザー、設定ファイルを確認します。</li>
+        <li>ポート競合時は、PIDとプロセス名を突き合わせ、意図したサービスかを確認します。</li>
+        <li>タスク失敗時は、実行ユーザー、作業フォルダ、終了コード、標準出力、スケジューラ履歴を確認します。</li>
+        <li>再起動で一時的に直る問題は、根本原因が未解決のまま残ることがあります。ログと再現条件を残します。</li>
+      </ul>
+    </section>
+
+    <section id="commands" class="card">
+      <h2>9. コマンド例</h2>
+      <p>
+        プロセス、サービス、ポート、タスクは、PowerShellやcmdで状態確認できます。
+      </p>
+      <table class="command-table">
+        <thead>
+          <tr>
+            <th>目的</th>
+            <th>コマンド例</th>
+            <th>確認できること</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>プロセス一覧</td>
+            <td><code>Get-Process</code></td>
+            <td>プロセス名、ID、CPU、メモリ使用量を確認できます。</td>
+          </tr>
+          <tr>
+            <td>PID指定確認</td>
+            <td><code>Get-Process -Id 1234</code></td>
+            <td>特定PIDのプロセスを確認できます。</td>
+          </tr>
+          <tr>
+            <td>サービス状態</td>
+            <td><code>Get-Service -Name Spooler</code></td>
+            <td>指定サービスの状態を確認できます。</td>
+          </tr>
+          <tr>
+            <td>サービス定義</td>
+            <td><code>sc qc サービス名</code></td>
+            <td>実行ファイル、起動種類、依存関係などを確認できます。</td>
+          </tr>
+          <tr>
+            <td>ポート利用</td>
+            <td><code>netstat -ano | findstr :443</code></td>
+            <td>443番ポートを使う接続やLISTEN状態、PIDを確認できます。</td>
+          </tr>
+          <tr>
+            <td>タスク一覧</td>
+            <td><code>schtasks /query /fo LIST /v</code></td>
+            <td>登録済みタスク、実行ユーザー、前回結果などを確認できます。</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10
+Get-Service | Where-Object Status -ne "Running"
+Get-NetTCPConnection -LocalPort 443 | Select-Object LocalAddress,LocalPort,State,OwningProcess
+Get-Process -Id (Get-NetTCPConnection -LocalPort 443).OwningProcess</code></pre>
+      <div class="warning">
+        <strong>停止操作の注意：</strong>
+        <code>taskkill</code> や <code>Stop-Process</code> は影響が大きい場合があります。本番環境では対象、影響、復旧手順を確認してから実行します。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>第5章のまとめ</h2>
+      <ol class="summary-list">
+        <li>アプリケーションは、実行されるとWindows上ではプロセスとして管理される。</li>
+        <li>プロセスはメモリ、権限、環境変数、ファイル、通信などを持つ実行単位である。</li>
+        <li>スレッドは、プロセス内で処理を進める実行単位である。</li>
+        <li>Windowsサービスは、ログオンユーザーがいなくても動くバックグラウンド処理である。</li>
+        <li>サービス調査では、状態、起動種類、実行ユーザー、依存関係、ログを確認する。</li>
+        <li>スタートアップ、タスクスケジューラ、サービスは、起動条件と用途が異なる。</li>
+        <li>ポート競合調査では、ポート番号、PID、プロセス名、サービス定義を突き合わせる。</li>
+        <li>プロセスやサービスの停止操作は、業務影響を確認してから行う。</li>
+      </ol>
+    </section>
+
+    <section id="quiz" class="card">
+      <h2>10. 理解度チェック</h2>
+
+      <div class="quiz">
+        <h3>Q1. アプリケーションとプロセスの違いは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            アプリケーションは機能を提供するソフトウェアです。
+            プロセスは、そのアプリケーションがWindows上で実行されているときの管理単位です。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q2. Windowsサービスの特徴は何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            ログオンユーザーがいなくてもバックグラウンドで動作でき、Service Control Managerにより起動、停止、状態管理されます。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q3. サービスが起動しない場合、何を確認しますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            サービス状態、起動種類、実行ファイルパス、実行ユーザー、依存サービス、ポート競合、設定ファイル、イベントログ、アプリログを確認します。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q4. タスクスケジューラの調査で重要な項目は何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            実行ユーザー、トリガー、作業フォルダ、引数、前回の実行結果、終了コード、標準出力やログの保存先を確認します。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q5. あるポートを使っているプロセスを調べる理由は何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            ポート競合や意図しないプロセスの起動を確認するためです。
+            ポート番号、PID、プロセス名、サービス定義を突き合わせることで原因候補を絞れます。
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>次章への接続</h2>
+      <p>
+        第5章では、Windows上で動くプロセス、サービス、タスクを扱いました。
+        第6章では、それらの処理が外部システム、ファイルサーバー、Web API、社内ネットワークへ接続するためのネットワーク基礎を学びます。
+      </p>
+      <div class="success">
+        <strong>第6章の入口：</strong>
+        プロセスが起動していても、DNS、Firewall、プロキシ、VPN、ポートが正しくなければ業務アプリは通信できません。
+      </div>
+    </section>
+
+    <nav class="chapter-nav" aria-label="章ナビゲーション">
+      <a href="chapter-04.html">前章：第4章 ユーザー、権限、認証</a>
+      <a href="../index.html">目次へ戻る</a>
+      <a href="chapter-06.html">次章：第6章 ネットワーク基礎</a>
+    </nav>
+
+    <p class="footer">
+      Windows OS教養講座 / 第5章 プロセスとサービス
+    </p>
+  </main>
+</body>
+</html>

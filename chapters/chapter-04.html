@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows OS教養講座 第4章 ユーザー、権限、認証</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="label">Windows OS教養講座 第4章</div>
+      <h1>ユーザー、権限、認証</h1>
+      <p>
+        ローカルユーザー、ドメインユーザー、SID、グループ、UAC、NTFS権限、共有権限、Active Directory、Entra IDの関係を学びます。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>この章の目的</h2>
+      <p>
+        第3章では、Windows上のファイルやパスの見方を扱いました。
+        第4章では、そのファイルやサービス、共有フォルダに対して「誰が」「どの権限で」アクセスしているのかを理解します。
+      </p>
+      <p>
+        業務システムの障害では、ファイルや設定が存在していても、実行ユーザーに権限がないために失敗することがあります。
+        また、手動実行では成功するのに、サービス、IIS、タスクスケジューラでは失敗する場合、実行ユーザーの違いが原因になることがあります。
+      </p>
+      <div class="point">
+        <strong>この章のゴール：</strong>
+        Windowsの認証と権限を、ローカルPCだけでなく、ドメイン、共有フォルダ、業務アプリ実行ユーザーの観点で説明できるようになることです。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>目次</h2>
+      <ul class="toc">
+        <li><a href="#user-types">1. ユーザーの種類</a></li>
+        <li><a href="#administrator-uac">2. AdministratorとUAC</a></li>
+        <li><a href="#sid-group">3. SIDとグループ</a></li>
+        <li><a href="#auth">4. 認証の考え方</a></li>
+        <li><a href="#permissions">5. NTFS権限と共有権限</a></li>
+        <li><a href="#ad-entra">6. Active DirectoryとEntra ID</a></li>
+        <li><a href="#missing-permission">7. 「ファイルがない」ではなく「権限がない」</a></li>
+        <li><a href="#operations">8. 実務での観点</a></li>
+        <li><a href="#commands">9. コマンド例</a></li>
+        <li><a href="#quiz">10. 理解度チェック</a></li>
+      </ul>
+    </section>
+
+    <section id="user-types" class="card">
+      <h2>1. ユーザーの種類</h2>
+      <p>
+        Windowsにサインインするユーザーには、複数の種類があります。
+        どの種類のユーザーで動いているかにより、利用できるリソース、認証先、管理方法が変わります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>種類</th>
+            <th>説明</th>
+            <th>実務で見る場面</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ローカルユーザー</td>
+            <td>そのPCやサーバー内に作成されたユーザーです。</td>
+            <td>スタンドアロン端末、検証環境、ローカル管理者、サービス実行用アカウント。</td>
+          </tr>
+          <tr>
+            <td>ドメインユーザー</td>
+            <td>Active Directoryドメインで管理されるユーザーです。</td>
+            <td>企業内のサインイン、ファイルサーバー、業務アプリ、シングルサインオン。</td>
+          </tr>
+          <tr>
+            <td>Microsoftアカウント</td>
+            <td>個人向けMicrosoftサービスと連携するアカウントです。</td>
+            <td>個人利用や一部小規模環境。企業運用では組織の方針に従います。</td>
+          </tr>
+          <tr>
+            <td>サービスアカウント</td>
+            <td>サービスやタスクを実行するために使うアカウントです。</td>
+            <td>Windowsサービス、IIS、バッチ、スケジュール処理、監視エージェント。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="point">
+        <strong>基本：</strong>
+        Windowsでは「人がログオンしているユーザー」と「プログラムが実行されているユーザー」が同じとは限りません。
+      </div>
+    </section>
+
+    <section id="administrator-uac" class="card">
+      <h2>2. AdministratorとUAC</h2>
+      <p>
+        Administratorは、Windowsで強い管理権限を持つ管理者アカウントや管理者グループを指す文脈で使われます。
+        管理者権限があれば、ソフトウェアのインストール、サービス操作、システム設定変更、他ユーザー領域へのアクセスなどが可能になります。
+      </p>
+      <p>
+        UACは、User Account Controlの略で、管理者権限が必要な操作を行う際に確認や昇格を求める仕組みです。
+        管理者グループに所属していても、常にすべての操作が管理者権限で実行されるわけではありません。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. 標準権限で起動</strong><br />通常のアプリやコマンドは、不要な管理権限を持たずに起動します。</div>
+        <div class="flow-step"><strong>2. 管理操作を要求</strong><br />システム設定変更、Program Files配下への書き込み、サービス操作などで昇格が必要になります。</div>
+        <div class="flow-step"><strong>3. UACで確認</strong><br />管理者の承認や資格情報入力を求めます。</div>
+        <div class="flow-step"><strong>4. 昇格後に実行</strong><br />許可された操作だけを管理者権限で実行します。</div>
+      </div>
+      <div class="warning">
+        <strong>安全な運用：</strong>
+        UACを無効化するのではなく、必要な作業だけ管理者として実行し、通常業務は最小権限で行うことが基本です。
+      </div>
+    </section>
+
+    <section id="sid-group" class="card">
+      <h2>3. SIDとグループ</h2>
+      <p>
+        SIDはSecurity Identifierの略で、Windowsがユーザーやグループを識別するための内部IDです。
+        表示名が変わっても、権限判定ではSIDが重要になります。
+      </p>
+      <p>
+        グループは、複数のユーザーにまとめて権限を付与するための仕組みです。
+        企業運用では、個別ユーザーに直接権限を付けるより、グループに権限を付け、ユーザーをグループへ所属させる設計が一般的です。
+      </p>
+      <div class="diagram">
+        <div class="diagram-box">ユーザー<small>山田、svc_batch、appuser</small></div>
+        <div class="diagram-box">グループ<small>経理部、AppOperators、Administrators</small></div>
+        <div class="diagram-box">SID<small>内部的な識別子</small></div>
+        <div class="diagram-box">権限<small>ファイル、共有、サービス、ログ</small></div>
+      </div>
+      <p>
+        障害調査では、ユーザー名だけでなく、所属グループ、実際に付与されている権限、拒否権限の有無を確認します。
+      </p>
+    </section>
+
+    <section id="auth" class="card">
+      <h2>4. 認証の考え方</h2>
+      <p>
+        認証は、利用者やシステムが「誰であるか」を確認する処理です。
+        Windowsでは、パスワード、Windows Hello、スマートカード、Kerberos、NTLM、クラウド認証など、環境により複数の方式が使われます。
+      </p>
+      <p>
+        Windows Helloは、生体認証やPINを使って端末へのサインインを安全かつ扱いやすくする仕組みです。
+        企業環境では、Active DirectoryやEntra ID、端末管理ポリシーと組み合わせて利用されることがあります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>用語</th>
+            <th>意味</th>
+            <th>実務での注意</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>認証</td>
+            <td>誰であるかを確認する。</td>
+            <td>パスワード、証明書、Windows Hello、Kerberosなど。</td>
+          </tr>
+          <tr>
+            <td>認可</td>
+            <td>認証された主体に、何を許可するかを決める。</td>
+            <td>ファイル権限、共有権限、管理者権限、アプリ権限。</td>
+          </tr>
+          <tr>
+            <td>監査</td>
+            <td>誰が何をしたかを記録する。</td>
+            <td>Securityログ、アプリ監査ログ、アクセスログ。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="point">
+        <strong>区別：</strong>
+        ログインできることは認証の成功です。ファイルを読めることやサービスを操作できることは認可の結果です。
+      </div>
+    </section>
+
+    <section id="permissions" class="card">
+      <h2>5. NTFS権限と共有権限</h2>
+      <p>
+        ファイルやフォルダに対するアクセスは、NTFS権限で制御されます。
+        ネットワーク共有経由でアクセスする場合は、共有権限も関係します。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>権限</th>
+            <th>対象</th>
+            <th>代表的な確認事項</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>NTFS権限</td>
+            <td>ファイルやフォルダそのもの</td>
+            <td>読み取り、書き込み、実行、変更、所有者、継承、拒否権限。</td>
+          </tr>
+          <tr>
+            <td>共有権限</td>
+            <td>ネットワーク共有として公開された入口</td>
+            <td>共有名、許可ユーザー、読み取り/変更、アクセス経路。</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        実効権限は、複数の許可と拒否、グループ所属、継承、共有権限、NTFS権限の組み合わせで決まります。
+        そのため、単にフォルダのプロパティだけを見るのではなく、実行ユーザーで実際にアクセスできるかを確認します。
+      </p>
+      <div class="warning">
+        <strong>設計上の注意：</strong>
+        共有フォルダやアプリフォルダの権限は、個人名ではなく業務ロールやサービス用グループに付与すると、退職や異動、運用引き継ぎに強くなります。
+      </div>
+    </section>
+
+    <section id="ad-entra" class="card">
+      <h2>6. Active DirectoryとEntra ID</h2>
+      <p>
+        Active Directoryは、企業内のユーザー、コンピューター、グループ、ポリシーを管理する基盤です。
+        ドメイン参加したWindows端末は、ドメインユーザーでサインインし、ファイルサーバーや業務アプリに対して統合的に認証できます。
+      </p>
+      <p>
+        Entra IDは、MicrosoftのクラウドID基盤です。
+        Microsoft 365やクラウドアプリ、デバイス管理と関係します。
+        企業環境では、オンプレミスのActive DirectoryとEntra IDを連携している場合もあります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>基盤</th>
+            <th>主な領域</th>
+            <th>業務での見方</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Active Directory</td>
+            <td>社内ドメイン、端末、ユーザー、グループ、グループポリシー</td>
+            <td>ファイルサーバー、Windows認証、端末管理、社内SSO。</td>
+          </tr>
+          <tr>
+            <td>Entra ID</td>
+            <td>クラウドID、Microsoft 365、SaaS、条件付きアクセス</td>
+            <td>クラウドアプリ認証、端末登録、多要素認証、ゼロトラスト設計。</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        どちらを使うか、または連携しているかは企業の設計により異なります。
+        認証障害を調査する場合は、端末がローカル管理、ドメイン参加、クラウド参加、ハイブリッド構成のどれに近いかを確認します。
+      </p>
+    </section>
+
+    <section id="missing-permission" class="card">
+      <h2>7. 「ファイルがない」ではなく「権限がない」</h2>
+      <p>
+        Windowsでは、権限がないためにファイルやフォルダへアクセスできない場合があります。
+        エラーメッセージ上は「見つからない」「アクセスできない」「パスが無効」と表示されることがあり、原因の見分けが必要です。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. パス確認</strong><br />入力されたパス、ドライブ、UNCパス、相対パスの基準を確認します。</div>
+        <div class="flow-step"><strong>2. 実行ユーザー確認</strong><br />誰の権限で処理しているかを確認します。サービスやIISでは人のログオンユーザーと異なります。</div>
+        <div class="flow-step"><strong>3. 権限確認</strong><br />NTFS権限、共有権限、グループ所属、拒否権限を確認します。</div>
+        <div class="flow-step"><strong>4. ログ確認</strong><br />アプリログ、イベントログ、Securityログ、ファイルサーバー側ログを確認します。</div>
+      </div>
+      <div class="success">
+        <strong>調査の型：</strong>
+        「存在確認」と「実行ユーザーでのアクセス確認」を分けるだけで、権限起因の問題を見つけやすくなります。
+      </div>
+    </section>
+
+    <section id="operations" class="card">
+      <h2>8. 実務での観点</h2>
+      <p>
+        ユーザー、権限、認証は、開発・運用の両方で重要です。
+        特に業務アプリをWindowsサービスやIISで動かす場合、開発者がログオンして実行した結果と、サービスアカウントで実行した結果は一致しないことがあります。
+      </p>
+      <ul>
+        <li>サービス実行ユーザーに、必要なフォルダ、共有、証明書秘密鍵、DB接続に対する権限があるか確認します。</li>
+        <li>共有フォルダは、共有権限とNTFS権限を合わせて確認します。</li>
+        <li>管理者権限でしか動かないアプリは、必要権限の設計が不十分な可能性があります。</li>
+        <li>ドメイン環境では、ユーザーの所属グループ、グループポリシー、認証先の状態も確認します。</li>
+        <li>権限を広げる場合は、暫定対応か恒久対応かを区別し、作業記録を残します。</li>
+      </ul>
+    </section>
+
+    <section id="commands" class="card">
+      <h2>9. コマンド例</h2>
+      <p>
+        認証と権限の調査では、現在のユーザー、所属グループ、権限設定を確認します。
+      </p>
+      <table class="command-table">
+        <thead>
+          <tr>
+            <th>目的</th>
+            <th>コマンド例</th>
+            <th>確認できること</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>現在のユーザー</td>
+            <td><code>whoami</code></td>
+            <td>現在の実行ユーザーを確認できます。</td>
+          </tr>
+          <tr>
+            <td>所属グループ</td>
+            <td><code>whoami /groups</code></td>
+            <td>ユーザーが所属するグループやSIDを確認できます。</td>
+          </tr>
+          <tr>
+            <td>ローカルユーザー</td>
+            <td><code>Get-LocalUser</code></td>
+            <td>ローカルユーザー一覧を確認できます。</td>
+          </tr>
+          <tr>
+            <td>権限確認</td>
+            <td><code>icacls "D:\app\data"</code></td>
+            <td>対象フォルダのNTFS権限を確認できます。</td>
+          </tr>
+          <tr>
+            <td>ポリシー結果</td>
+            <td><code>gpresult /r</code></td>
+            <td>適用されているグループポリシーの概要を確認できます。</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>whoami
+whoami /groups
+icacls "\\fileserver\share\reports"
+runas /user:DOMAIN\appuser cmd</code></pre>
+      <p>
+        <code>runas</code> で別ユーザーとして確認する場合は、運用ルールに従い、共有アカウントやパスワードの扱いに注意します。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>第4章のまとめ</h2>
+      <ol class="summary-list">
+        <li>Windowsには、ローカルユーザー、ドメインユーザー、Microsoftアカウント、サービスアカウントなどがある。</li>
+        <li>管理者グループに所属していても、UACにより通常は標準権限で実行されることがある。</li>
+        <li>SIDは、Windowsがユーザーやグループを内部的に識別するためのIDである。</li>
+        <li>権限は個別ユーザーではなく、グループに付与すると運用しやすい。</li>
+        <li>認証は誰であるかの確認、認可は何を許可するかの判断である。</li>
+        <li>共有フォルダでは、共有権限とNTFS権限の両方が関係する。</li>
+        <li>Active DirectoryとEntra IDは、企業Windowsの認証・端末管理・クラウド連携に関係する。</li>
+        <li>「ファイルがない」と見える問題でも、実際は実行ユーザーの権限不足である場合がある。</li>
+      </ol>
+    </section>
+
+    <section id="quiz" class="card">
+      <h2>10. 理解度チェック</h2>
+
+      <div class="quiz">
+        <h3>Q1. ローカルユーザーとドメインユーザーの違いは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            ローカルユーザーはそのPCやサーバー内で管理されるユーザーです。
+            ドメインユーザーはActive Directoryドメインで管理され、複数の端末やサーバー、共有リソースで利用されます。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q2. UACは何のための仕組みですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            管理者権限が必要な操作を行う際に確認や昇格を求め、通常時は不要な管理権限で動かないようにするための仕組みです。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q3. SIDとは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            Security Identifierの略で、Windowsがユーザーやグループを内部的に識別するためのIDです。
+            表示名ではなくSIDに基づいて権限判定されます。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q4. 共有フォルダにアクセスできない場合、どの権限を確認しますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            共有権限とNTFS権限の両方を確認します。
+            さらに、実行ユーザー、資格情報、グループ所属、ネットワーク到達性、名前解決も確認します。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q5. 手動実行では成功する処理がWindowsサービスでは失敗する場合、何を疑いますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            サービスの実行ユーザー、NTFS権限、共有権限、AppDataや環境変数の違い、資格情報、作業フォルダの違いを疑います。
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>次章への接続</h2>
+      <p>
+        第4章では、Windowsのユーザー、権限、認証を扱いました。
+        第5章では、そのユーザー権限で実際に動くプロセス、サービス、バックグラウンド処理、タスクスケジューラを詳しく見ていきます。
+      </p>
+      <div class="success">
+        <strong>第5章の入口：</strong>
+        Windowsでは、何が動いているかだけでなく、どのユーザー権限で動いているかが重要です。
+      </div>
+    </section>
+
+    <nav class="chapter-nav" aria-label="章ナビゲーション">
+      <a href="chapter-03.html">前章：第3章 ファイルシステムとパス</a>
+      <a href="../index.html">目次へ戻る</a>
+      <a href="chapter-05.html">次章：第5章 プロセスとサービス</a>
+    </nav>
+
+    <p class="footer">
+      Windows OS教養講座 / 第4章 ユーザー、権限、認証
+    </p>
+  </main>
+</body>
+</html>

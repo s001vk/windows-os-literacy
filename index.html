@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows OS教養講座</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="label">業務システム開発・運用者向け</div>
+      <h1>Windows OS教養講座</h1>
+      <p>
+        Windowsを、ファイル、権限、プロセス、サービス、通信、設定、ログ、証明書、更新、運用の観点で理解するための教材です。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>この教材の目的</h2>
+      <p>
+        この教材は、Windowsを単なる操作対象ではなく、企業システムと業務アプリケーションを支える実行基盤として理解することを目的にしています。
+        業務システムの開発・運用では、アプリケーションコードだけでなく、OS上の権限、サービス、ネットワーク、証明書、ログ、更新管理を見て判断する場面が多くあります。
+      </p>
+      <div class="point">
+        <strong>学習の軸：</strong>
+        「動かない」「つながらない」「権限がない」「証明書エラーになる」「更新後に挙動が変わった」といった実務の問題を、Windowsの構造から切り分けられる状態を目指します。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>推奨学習順序</h2>
+      <ol class="summary-list">
+        <li>
+          <strong>第1章から第6章</strong><br />
+          Windows全体像、基本構造、ファイル、権限、プロセス、ネットワークを先に押さえます。
+        </li>
+        <li>
+          <strong>第7章から第12章</strong><br />
+          レジストリ、ログ、PowerShell、セキュリティ、更新、アプリ実行基盤を学び、運用調査の土台を作ります。
+        </li>
+        <li>
+          <strong>第13章から第20章</strong><br />
+          IIS、Active Directory、仮想化、障害調査、証明書、Windows Server、自動化へ進み、業務システム運用に接続します。
+        </li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>全20章一覧</h2>
+      <ul class="chapter-list">
+        <li><a href="chapters/chapter-01.html"><strong>第1章 Windowsの全体像</strong><small>Windowsを企業システムの基盤として見るための入口です。</small></a></li>
+        <li><a href="chapters/chapter-02.html"><strong>第2章 Windowsの基本構造</strong><small>カーネル、プロセス、サービス、DLL、ログの関係を学びます。</small></a></li>
+        <li><a href="chapters/chapter-03.html"><strong>第3章 ファイルシステムとパス</strong><small>ドライブ、NTFS、共有、ログや設定ファイルの置き場所を整理します。</small></a></li>
+        <li><a href="chapters/chapter-04.html"><strong>第4章 ユーザー、権限、認証</strong><small>ユーザー、SID、グループ、UAC、NTFS権限、共有権限を学びます。</small></a></li>
+        <li><a href="chapters/chapter-05.html"><strong>第5章 プロセスとサービス</strong><small>アプリ、バックグラウンド処理、サービス、タスク、実行ユーザーを理解します。</small></a></li>
+        <li><a href="chapters/chapter-06.html"><strong>第6章 ネットワーク基礎</strong><small>IP、DNS、DHCP、プロキシ、VPN、Firewall、ポートを扱います。</small></a></li>
+        <li><a href="chapters/chapter-07.html"><strong>第7章 レジストリ</strong><small>OSとアプリの設定基盤としてレジストリを理解します。</small></a></li>
+        <li><a href="chapters/chapter-08.html"><strong>第8章 イベントログとトラブルシューティング</strong><small>イベントビューアーとログ調査の基本を学びます。</small></a></li>
+        <li><a href="chapters/chapter-09.html"><strong>第9章 PowerShell</strong><small>Windows管理と自動化のためのPowerShellを学びます。</small></a></li>
+        <li><a href="chapters/chapter-10.html"><strong>第10章 Windowsセキュリティ</strong><small>認証、認可、暗号化、監査、更新、分離、復旧で整理します。</small></a></li>
+        <li><a href="chapters/chapter-11.html"><strong>第11章 Windows Updateと運用管理</strong><small>更新プログラム、再起動制御、展開管理、業務影響を扱います。</small></a></li>
+        <li><a href="chapters/chapter-12.html"><strong>第12章 アプリケーション実行基盤</strong><small>EXE、MSI、DLL、ランタイム、環境変数、互換性を学びます。</small></a></li>
+        <li><a href="chapters/chapter-13.html"><strong>第13章 IISとWebアプリ運用</strong><small>IIS、アプリケーションプール、認証、証明書、ログを扱います。</small></a></li>
+        <li><a href="chapters/chapter-14.html"><strong>第14章 Active Directoryと企業Windows</strong><small>ドメイン、Kerberos、グループポリシー、端末管理を学びます。</small></a></li>
+        <li><a href="chapters/chapter-15.html"><strong>第15章 仮想化と開発環境</strong><small>Hyper-V、WSL、Sandbox、Docker Desktopを使い分けます。</small></a></li>
+        <li><a href="chapters/chapter-16.html"><strong>第16章 障害調査の型</strong><small>再現条件、影響範囲、ログ、仮説、切り分けを整理します。</small></a></li>
+        <li><a href="chapters/chapter-17.html"><strong>第17章 Windowsコマンド教養</strong><small>コマンドを暗記ではなく確認対象ごとに整理します。</small></a></li>
+        <li><a href="chapters/chapter-18.html"><strong>第18章 証明書とHTTPS</strong><small>公開鍵暗号、証明書チェーン、IIS設定、エラー調査を扱います。</small></a></li>
+        <li><a href="chapters/chapter-19.html"><strong>第19章 Windows Server基礎</strong><small>役割、機能、監視、復旧、権限、更新を学びます。</small></a></li>
+        <li><a href="chapters/chapter-20.html"><strong>第20章 Windowsを使った業務改善・自動化</strong><small>PowerShellやタスクスケジューラで運用改善につなげます。</small></a></li>
+      </ul>
+    </section>
+
+    <p class="footer">
+      Windows OS教養講座 / 目次
+    </p>
+  </main>
+</body>
+</html>

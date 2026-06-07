@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows OS教養講座 第3章 ファイルシステムとパス</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="label">Windows OS教養講座 第3章</div>
+      <h1>ファイルシステムとパス</h1>
+      <p>
+        ドライブレター、絶対パス、Program Files、AppData、System32、NTFS、共有フォルダ、UNCパスを、業務アプリ運用の視点で学びます。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>この章の目的</h2>
+      <p>
+        第2章では、Windows上でアプリが動くときにプロセス、サービス、DLL、設定、ログが関係することを扱いました。
+        第3章では、それらが実際に置かれる場所と、パスの考え方を整理します。
+      </p>
+      <p>
+        業務システムでは、設定ファイル、ログ、アップロードファイル、バッチ、証明書、共有フォルダ、ランタイムの配置が動作に直結します。
+        パスの解釈を誤ると、開発端末では動くが本番端末では動かない、サービス実行時だけ失敗する、共有フォルダにアクセスできない、といった問題につながります。
+      </p>
+      <div class="point">
+        <strong>この章のゴール：</strong>
+        Windowsの代表的なフォルダ、パス表記、NTFS権限、共有パスの意味を理解し、調査時に見るべき場所を判断できるようになることです。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>目次</h2>
+      <ul class="toc">
+        <li><a href="#drive-path">1. ドライブレターとパス</a></li>
+        <li><a href="#absolute-relative">2. 絶対パスと相対パス</a></li>
+        <li><a href="#standard-folders">3. 代表的なWindowsフォルダ</a></li>
+        <li><a href="#ntfs">4. NTFSとファイル権限</a></li>
+        <li><a href="#share-unc">5. 共有フォルダとUNCパス</a></li>
+        <li><a href="#logs-settings">6. ログや設定ファイルの置き場所</a></li>
+        <li><a href="#bitness">7. 32bit / 64bit差異</a></li>
+        <li><a href="#operations">8. 実務での観点</a></li>
+        <li><a href="#commands">9. コマンド例</a></li>
+        <li><a href="#quiz">10. 理解度チェック</a></li>
+      </ul>
+    </section>
+
+    <section id="drive-path" class="card">
+      <h2>1. ドライブレターとパス</h2>
+      <p>
+        Windowsでは、ストレージや一部の割り当て先を <code>C:</code> や <code>D:</code> のようなドライブレターで表します。
+        一般的にOSは <code>C:</code> に配置されますが、業務環境ではデータ領域、ログ領域、アプリ領域が別ドライブになっていることがあります。
+      </p>
+      <p>
+        パスは、ファイルやフォルダの場所を示す文字列です。
+        Windowsでは <code>C:\Windows\System32</code> のようにバックスラッシュで階層を区切る表記が多く使われます。
+        PowerShellではスラッシュを受け付ける場面もありますが、Windowsの設定画面や古いアプリではバックスラッシュ前提のことがあります。
+      </p>
+      <div class="diagram">
+        <div class="diagram-box">C:<small>OS、Program Files、Users</small></div>
+        <div class="diagram-box">D:<small>業務データ、ログ、アプリ配置</small></div>
+        <div class="diagram-box">\\server\share<small>共有フォルダ、ファイルサーバー</small></div>
+        <div class="diagram-box">環境変数<small>%TEMP%、%APPDATA%、PATH</small></div>
+      </div>
+      <div class="warning">
+        <strong>注意：</strong>
+        開発端末では <code>C:</code> にある前提のパスでも、本番サーバーでは別ドライブや共有パスになっていることがあります。絶対パスの固定は運用差異を生みやすい点に注意します。
+      </div>
+    </section>
+
+    <section id="absolute-relative" class="card">
+      <h2>2. 絶対パスと相対パス</h2>
+      <p>
+        絶対パスは、ドライブや共有名から始まる完全な場所指定です。
+        相対パスは、現在の作業フォルダを基準にした場所指定です。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>種類</th>
+            <th>例</th>
+            <th>特徴</th>
+            <th>実務での注意</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>絶対パス</td>
+            <td><code>C:\app\config\appsettings.json</code></td>
+            <td>どこから実行しても同じ場所を指す。</td>
+            <td>環境差異に弱い。ドライブや配置先が変わると修正が必要。</td>
+          </tr>
+          <tr>
+            <td>相対パス</td>
+            <td><code>.\config\appsettings.json</code></td>
+            <td>現在の作業フォルダを基準に解釈される。</td>
+            <td>サービス、タスク、IISでは作業フォルダが想定と異なる場合がある。</td>
+          </tr>
+          <tr>
+            <td>UNCパス</td>
+            <td><code>\\fileserver\share\report.csv</code></td>
+            <td>ネットワーク共有上の場所を示す。</td>
+            <td>認証、共有権限、NTFS権限、ネットワーク到達性が関係する。</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        サービスやタスクスケジューラで相対パスを使う場合、手動実行時とは基準フォルダが違うことがあります。
+        設定ファイルやログ出力先は、実行方式ごとの作業フォルダを確認して設計します。
+      </p>
+    </section>
+
+    <section id="standard-folders" class="card">
+      <h2>3. 代表的なWindowsフォルダ</h2>
+      <p>
+        Windowsには、用途が分かれた標準フォルダがあります。
+        業務アプリの配置や調査では、それぞれの意味を理解しておく必要があります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>フォルダ</th>
+            <th>主な用途</th>
+            <th>調査時の見方</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>C:\Program Files</code></td>
+            <td>64bitアプリケーションの標準的なインストール先</td>
+            <td>手動書き込みは制限されることが多い。設定やログの置き場に向かない場合がある。</td>
+          </tr>
+          <tr>
+            <td><code>C:\Program Files (x86)</code></td>
+            <td>32bitアプリケーションの標準的なインストール先</td>
+            <td>32bit / 64bitの依存関係を確認する。</td>
+          </tr>
+          <tr>
+            <td><code>C:\ProgramData</code></td>
+            <td>全ユーザー共通のアプリ設定やデータ</td>
+            <td>サービスや複数ユーザーで共有する設定の置き場所になりやすい。</td>
+          </tr>
+          <tr>
+            <td><code>C:\Users\ユーザー名\AppData</code></td>
+            <td>ユーザーごとのアプリデータ</td>
+            <td>ログオンユーザーごとに場所が異なる。サービス実行ユーザーでは想定と違う場合がある。</td>
+          </tr>
+          <tr>
+            <td><code>C:\Windows\System32</code></td>
+            <td>Windowsのシステムファイル、64bit向けシステムコンポーネント</td>
+            <td>直接変更しない。OS機能やコマンドの実体が含まれる。</td>
+          </tr>
+          <tr>
+            <td><code>C:\Windows\SysWOW64</code></td>
+            <td>64bit Windows上の32bit互換用システムコンポーネント</td>
+            <td>名前と実体の関係が直感と逆に見えるため、bit数差異の調査で注意する。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="point">
+        <strong>実務観点：</strong>
+        アプリ本体はProgram Files、全体設定はProgramData、ユーザー別設定はAppData、ログは専用フォルダや標準ログ領域、というように用途で分けると運用しやすくなります。
+      </div>
+    </section>
+
+    <section id="ntfs" class="card">
+      <h2>4. NTFSとファイル権限</h2>
+      <p>
+        NTFSは、Windowsで広く使われるファイルシステムです。
+        ファイルやフォルダに対して、読み取り、書き込み、実行、変更、フルコントロールなどの権限を設定できます。
+      </p>
+      <p>
+        業務システムでは、ファイルが存在していても実行ユーザーに権限がなければアクセスできません。
+        そのため、障害調査では「ファイルがあるか」と「そのユーザーが読めるか、書けるか」を分けて確認します。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. ファイルの存在</strong><br />パスが正しいか、ドライブや共有が存在するかを確認します。</div>
+        <div class="flow-step"><strong>2. 実行ユーザー</strong><br />ログオンユーザー、サービスアカウント、IISアプリケーションプールIDなどを確認します。</div>
+        <div class="flow-step"><strong>3. NTFS権限</strong><br />対象フォルダに読み取り、書き込み、実行権限があるかを確認します。</div>
+        <div class="flow-step"><strong>4. ロックや容量</strong><br />別プロセスのロック、ディスク容量不足、パス長、ファイル名の制約を確認します。</div>
+      </div>
+      <div class="warning">
+        <strong>注意：</strong>
+        調査のために安易にEveryoneフルコントロールを付与すると、情報漏えいや改ざんのリスクが増えます。必要なユーザーやサービスアカウントに必要な権限だけを付与します。
+      </div>
+    </section>
+
+    <section id="share-unc" class="card">
+      <h2>5. 共有フォルダとUNCパス</h2>
+      <p>
+        Windowsでは、ファイルサーバー上のフォルダを共有し、クライアントやサーバーからアクセスできます。
+        共有先は <code>\\サーバー名\共有名\フォルダ</code> のようなUNCパスで表します。
+      </p>
+      <p>
+        共有フォルダには、共有権限とNTFS権限の両方が関係します。
+        共有権限で許可されていてもNTFS権限で拒否されればアクセスできません。
+        逆にNTFS権限があっても共有権限で制限される場合があります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>観点</th>
+            <th>確認内容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>名前解決</td>
+            <td>サーバー名がDNSやNetBIOSで解決できるか。</td>
+          </tr>
+          <tr>
+            <td>ネットワーク</td>
+            <td>SMB通信に必要な経路やFirewallが許可されているか。</td>
+          </tr>
+          <tr>
+            <td>認証</td>
+            <td>アクセスしているユーザーが意図した資格情報か。</td>
+          </tr>
+          <tr>
+            <td>権限</td>
+            <td>共有権限とNTFS権限の両方で許可されているか。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="logs-settings" class="card">
+      <h2>6. ログや設定ファイルの置き場所</h2>
+      <p>
+        業務アプリでは、設定ファイルとログファイルの置き場所を明確にすることが重要です。
+        アプリ本体のフォルダにログを書き込む設計は、Program Files配下では権限不足になりやすく、運用にも向かない場合があります。
+      </p>
+      <ul>
+        <li>全ユーザー共通の設定は <code>ProgramData</code> 配下に置くことがあります。</li>
+        <li>ユーザーごとの設定は <code>AppData</code> 配下に置くことがあります。</li>
+        <li>サービスのログは、専用のログフォルダやイベントログに出す設計が扱いやすくなります。</li>
+        <li>IISのログ、アプリログ、Windowsイベントログは、それぞれ保存場所と保持期間を確認します。</li>
+      </ul>
+      <div class="point">
+        <strong>運用設計：</strong>
+        ログ出力先は、容量監視、ローテーション、アクセス権、障害時の収集方法まで含めて決める必要があります。
+      </div>
+    </section>
+
+    <section id="bitness" class="card">
+      <h2>7. 32bit / 64bit差異</h2>
+      <p>
+        64bit Windowsでは、64bitアプリと32bitアプリが共存できます。
+        しかし、参照するフォルダやレジストリ、DLL探索が異なるため、互換性問題の原因になります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>64bit側</th>
+            <th>32bit側</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>アプリ配置</td>
+            <td><code>Program Files</code></td>
+            <td><code>Program Files (x86)</code></td>
+          </tr>
+          <tr>
+            <td>システムフォルダ</td>
+            <td><code>System32</code></td>
+            <td><code>SysWOW64</code></td>
+          </tr>
+          <tr>
+            <td>主な問題</td>
+            <td>64bit DLLが必要なアプリで32bit DLLを参照する。</td>
+            <td>32bitアプリが64bit専用コンポーネントを利用できない。</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        フォルダ名だけで判断すると誤解しやすいため、実行中プロセスのbit数、利用するDLL、ランタイム、ODBCドライバなどを合わせて確認します。
+      </p>
+    </section>
+
+    <section id="operations" class="card">
+      <h2>8. 実務での観点</h2>
+      <p>
+        ファイルシステムとパスの知識は、アプリ配置、ログ収集、権限設計、バックアップ、移行、障害調査に直結します。
+        特にサービスやIISのように利用者の画面操作とは異なる実行ユーザーで動く処理では、手動確認だけで判断しないことが重要です。
+      </p>
+      <ul>
+        <li>「手動では読める」が「サービスでは読めない」場合、実行ユーザーとNTFS権限を確認します。</li>
+        <li>「共有フォルダに書けない」場合、UNCパス、資格情報、共有権限、NTFS権限、ネットワークを分けて確認します。</li>
+        <li>「本番だけDLLが見つからない」場合、Program Files、System32、SysWOW64、PATH、ランタイムの差異を確認します。</li>
+        <li>「ログが出ない」場合、出力先フォルダの存在、書き込み権限、容量、ログ設定を確認します。</li>
+      </ul>
+    </section>
+
+    <section id="commands" class="card">
+      <h2>9. コマンド例</h2>
+      <p>
+        パス、存在確認、権限、共有状態は、コマンドで確認して記録すると調査の再現性が高まります。
+      </p>
+      <table class="command-table">
+        <thead>
+          <tr>
+            <th>目的</th>
+            <th>コマンド例</th>
+            <th>確認できること</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ファイル存在確認</td>
+            <td><code>Test-Path "C:\app\config.json"</code></td>
+            <td>指定パスが存在するかを確認できます。</td>
+          </tr>
+          <tr>
+            <td>フォルダ一覧</td>
+            <td><code>Get-ChildItem "C:\ProgramData"</code></td>
+            <td>フォルダ内のファイルやサブフォルダを確認できます。</td>
+          </tr>
+          <tr>
+            <td>権限確認</td>
+            <td><code>icacls "D:\logs"</code></td>
+            <td>NTFS権限の設定を確認できます。</td>
+          </tr>
+          <tr>
+            <td>共有接続確認</td>
+            <td><code>net use</code></td>
+            <td>現在のネットワーク共有接続を確認できます。</td>
+          </tr>
+          <tr>
+            <td>環境変数確認</td>
+            <td><code>$env:PATH</code></td>
+            <td>DLLやコマンド探索に影響するPATHを確認できます。</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>Test-Path "\\fileserver\share\input.csv"
+icacls "D:\app\logs"
+Get-ChildItem Env:
+Resolve-Path ".\config\appsettings.json"</code></pre>
+    </section>
+
+    <section class="card">
+      <h2>第3章のまとめ</h2>
+      <ol class="summary-list">
+        <li>Windowsでは、ドライブレター、絶対パス、相対パス、UNCパスを使い分ける。</li>
+        <li>相対パスは現在の作業フォルダに依存するため、サービスやタスク実行では注意が必要である。</li>
+        <li>Program Files、ProgramData、AppData、System32、SysWOW64は用途が異なる。</li>
+        <li>NTFS権限により、ファイルが存在しても実行ユーザーがアクセスできない場合がある。</li>
+        <li>共有フォルダでは、名前解決、ネットワーク、認証、共有権限、NTFS権限を分けて確認する。</li>
+        <li>ログや設定ファイルは、権限、容量監視、収集方法を含めて配置を考える。</li>
+        <li>32bit / 64bit差異は、フォルダ、DLL、ランタイム、レジストリ参照に影響する。</li>
+      </ol>
+    </section>
+
+    <section id="quiz" class="card">
+      <h2>10. 理解度チェック</h2>
+
+      <div class="quiz">
+        <h3>Q1. 絶対パスと相対パスの違いは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            絶対パスはドライブや共有名から始まる完全な場所指定です。
+            相対パスは現在の作業フォルダを基準に解釈されるため、実行方法によって指す場所が変わる場合があります。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q2. Program Files配下にログを書き込む設計で起きやすい問題は何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            標準ユーザーやサービス実行ユーザーに書き込み権限がなく、ログ出力に失敗する場合があります。
+            また、アプリ本体と運用データが混在し、バックアップや容量管理もしづらくなります。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q3. 「ファイルがない」と見えるが実際は権限不足のケースでは、何を確認しますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            実行ユーザー、対象パス、NTFS権限、共有権限、アクセス時の資格情報、イベントログやアプリログを確認します。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q4. UNCパスとは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            <code>\\server\share\folder</code> のように、ネットワーク共有上の場所を示すパスです。
+            アクセスには名前解決、ネットワーク到達性、認証、共有権限、NTFS権限が関係します。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q5. 32bit / 64bit差異で注意すべき代表的なフォルダは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            <code>Program Files</code>、<code>Program Files (x86)</code>、<code>System32</code>、<code>SysWOW64</code> です。
+            DLLやランタイムのbit数も合わせて確認します。
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>次章への接続</h2>
+      <p>
+        第3章では、ファイルとパスの見方を扱いました。
+        第4章では、そのファイルや共有、アプリ実行に対して「誰が何をできるのか」を決める、ユーザー、権限、認証を学びます。
+      </p>
+      <div class="success">
+        <strong>第4章の入口：</strong>
+        Windowsの障害では、ファイルが存在しないのではなく、実行ユーザーに見えていない、または権限がないケースが少なくありません。
+      </div>
+    </section>
+
+    <nav class="chapter-nav" aria-label="章ナビゲーション">
+      <a href="chapter-02.html">前章：第2章 Windowsの基本構造</a>
+      <a href="../index.html">目次へ戻る</a>
+      <a href="chapter-04.html">次章：第4章 ユーザー、権限、認証</a>
+    </nav>
+
+    <p class="footer">
+      Windows OS教養講座 / 第3章 ファイルシステムとパス
+    </p>
+  </main>
+</body>
+</html>

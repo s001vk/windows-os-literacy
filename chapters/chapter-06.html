@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows OS教養講座 第6章 ネットワーク基礎</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="label">Windows OS教養講座 第6章</div>
+      <h1>ネットワーク基礎</h1>
+      <p>
+        IPアドレス、サブネット、DNS、DHCP、hosts、プロキシ、VPN、RDP、SMB、WinRM、Windows Firewall、ポート番号を実務調査の観点で学びます。
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>この章の目的</h2>
+      <p>
+        第5章では、Windows上で動くプロセスやサービスを扱いました。
+        第6章では、それらの処理が社内システム、ファイルサーバー、Web API、DB、クラウド、利用者端末と通信するための基礎を整理します。
+      </p>
+      <p>
+        業務システムでは、「サーバーに接続できない」「社内では動くが在宅では動かない」「名前解決できない」「ポートが閉じている」「プロキシ経由で失敗する」といった問題が頻繁に起きます。
+        ネットワークを層で見られると、原因を速く切り分けられます。
+      </p>
+      <div class="point">
+        <strong>この章のゴール：</strong>
+        Windows環境の通信トラブルを、IP、名前解決、経路、ポート、Firewall、プロキシ、VPN、認証の観点で分類できるようになることです。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>目次</h2>
+      <ul class="toc">
+        <li><a href="#ip-subnet-gateway">1. IPアドレス、サブネット、デフォルトゲートウェイ</a></li>
+        <li><a href="#dns-dhcp-hosts">2. DNS、DHCP、hosts</a></li>
+        <li><a href="#proxy-vpn">3. プロキシとVPN</a></li>
+        <li><a href="#windows-protocols">4. RDP、SMB、WinRM</a></li>
+        <li><a href="#firewall-port">5. Windows Firewallとポート番号</a></li>
+        <li><a href="#connection-flow">6. 通信が成立するまでの流れ</a></li>
+        <li><a href="#remote-work">7. 社内では動くが在宅では動かない原因分類</a></li>
+        <li><a href="#operations">8. 実務での観点</a></li>
+        <li><a href="#commands">9. コマンド例</a></li>
+        <li><a href="#quiz">10. 理解度チェック</a></li>
+      </ul>
+    </section>
+
+    <section id="ip-subnet-gateway" class="card">
+      <h2>1. IPアドレス、サブネット、デフォルトゲートウェイ</h2>
+      <p>
+        IPアドレスは、ネットワーク上の端末やサーバーを識別するための住所に相当します。
+        サブネットは、同じネットワーク範囲に属する端末を区切る考え方です。
+        デフォルトゲートウェイは、自分のネットワーク外へ通信するときに最初に渡すルーターです。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>役割</th>
+            <th>問題時の見方</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>IPアドレス</td>
+            <td>端末やサーバーのネットワーク上の識別子</td>
+            <td>想定したネットワーク帯か、重複していないかを確認する。</td>
+          </tr>
+          <tr>
+            <td>サブネットマスク</td>
+            <td>同一ネットワーク範囲を判断するための情報</td>
+            <td>サブネット設定の誤りで近い宛先に届かない場合がある。</td>
+          </tr>
+          <tr>
+            <td>デフォルトゲートウェイ</td>
+            <td>別ネットワークへ出る入口</td>
+            <td>未設定や誤設定では、外部や別セグメントへ到達できない。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="diagram">
+        <div class="diagram-box">PC<small>192.168.10.25</small></div>
+        <div class="diagram-box">同一サブネット<small>192.168.10.0/24</small></div>
+        <div class="diagram-box">ゲートウェイ<small>192.168.10.1</small></div>
+        <div class="diagram-box">別ネットワーク<small>社内サーバー、インターネット</small></div>
+      </div>
+      <p>
+        業務環境では、端末の有線LAN、無線LAN、VPN、仮想アダプタが同時に存在することがあります。
+        そのため、どのインターフェースで通信しようとしているかも確認します。
+      </p>
+    </section>
+
+    <section id="dns-dhcp-hosts" class="card">
+      <h2>2. DNS、DHCP、hosts</h2>
+      <p>
+        DNSは、ホスト名やドメイン名をIPアドレスへ変換する仕組みです。
+        業務アプリの接続先が <code>api.example.local</code> のような名前で設定されている場合、まず名前解決が成功する必要があります。
+      </p>
+      <p>
+        DHCPは、端末にIPアドレス、サブネットマスク、デフォルトゲートウェイ、DNSサーバーなどを自動配布する仕組みです。
+        hostsファイルは、端末ローカルで名前とIPアドレスの対応を設定するファイルです。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>仕組み</th>
+            <th>役割</th>
+            <th>調査ポイント</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>DNS</td>
+            <td>名前をIPアドレスへ変換する。</td>
+            <td>参照しているDNSサーバー、検索サフィックス、内部名と外部名の違い。</td>
+          </tr>
+          <tr>
+            <td>DHCP</td>
+            <td>ネットワーク設定を自動配布する。</td>
+            <td>リース取得状況、誤ったDNSやゲートウェイの配布、VPN接続時の差異。</td>
+          </tr>
+          <tr>
+            <td>hosts</td>
+            <td>端末ごとに名前解決を上書きする。</td>
+            <td>古い検証設定が残っていないか、意図しないIPへ向いていないか。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="warning">
+        <strong>注意：</strong>
+        hostsファイルでの暫定回避は、端末ごとの設定差異を生みます。恒久対応ではDNSや環境設定を正しく直すことを優先します。
+      </div>
+    </section>
+
+    <section id="proxy-vpn" class="card">
+      <h2>3. プロキシとVPN</h2>
+      <p>
+        プロキシは、端末やアプリの外部通信を中継する仕組みです。
+        企業では、Webアクセスの制御、ログ取得、セキュリティ検査、認証のためにプロキシを利用することがあります。
+      </p>
+      <p>
+        VPNは、社外や別拠点から社内ネットワークへ安全に接続するための仕組みです。
+        VPN接続時は、IPアドレス、DNS、ルーティング、プロキシ設定が社内接続時と変わることがあります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>項目</th>
+            <th>関係する問題</th>
+            <th>確認事項</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>プロキシ</td>
+            <td>Web API接続失敗、認証エラー、証明書エラー、タイムアウト</td>
+            <td>OS設定、ブラウザ設定、WinHTTP設定、アプリ独自設定、認証方式。</td>
+          </tr>
+          <tr>
+            <td>VPN</td>
+            <td>社内名の解決不可、ファイルサーバー不可、経路不一致</td>
+            <td>VPN接続状態、割り当てIP、DNS、ルート、分割トンネル設定。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="point">
+        <strong>実務観点：</strong>
+        ブラウザでは接続できるがサービスでは接続できない場合、ブラウザのプロキシ設定とWindowsサービスが使うWinHTTP設定が異なることがあります。
+      </div>
+    </section>
+
+    <section id="windows-protocols" class="card">
+      <h2>4. RDP、SMB、WinRM</h2>
+      <p>
+        Windows運用でよく使う通信には、RDP、SMB、WinRMがあります。
+        それぞれ用途、ポート、認証、Firewall設定が異なります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>名称</th>
+            <th>用途</th>
+            <th>代表的なポート</th>
+            <th>注意点</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RDP</td>
+            <td>リモートデスクトップ接続</td>
+            <td>3389</td>
+            <td>公開範囲、認証、監査、接続元制限を適切に管理する。</td>
+          </tr>
+          <tr>
+            <td>SMB</td>
+            <td>ファイル共有、プリンタ共有</td>
+            <td>445</td>
+            <td>共有権限、NTFS権限、Firewall、古いプロトコル利用に注意する。</td>
+          </tr>
+          <tr>
+            <td>WinRM</td>
+            <td>PowerShellリモート管理</td>
+            <td>5985 / 5986</td>
+            <td>HTTPS利用、認証、許可ホスト、管理対象範囲を設計する。</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="warning">
+        <strong>安全な運用：</strong>
+        RDPやWinRMを広い範囲へ開放するのは避け、VPN、接続元制限、多要素認証、監査ログ、踏み台設計などを組み合わせます。
+      </div>
+    </section>
+
+    <section id="firewall-port" class="card">
+      <h2>5. Windows Firewallとポート番号</h2>
+      <p>
+        Windows Firewallは、端末やサーバーへの受信通信、または環境によっては送信通信を制御する仕組みです。
+        ネットワークプロファイルには、ドメイン、プライベート、パブリックがあり、接続しているネットワークによって適用ルールが変わる場合があります。
+      </p>
+      <p>
+        ポート番号は、同じIPアドレス上で複数のサービスを区別するために使われます。
+        たとえばHTTPは80、HTTPSは443、RDPは3389、SMBは445が代表例です。
+      </p>
+      <div class="diagram">
+        <div class="diagram-box">クライアント<small>接続元IP、アプリ</small></div>
+        <div class="diagram-box">ネットワーク経路<small>ルーター、VPN、Proxy</small></div>
+        <div class="diagram-box">Windows Firewall<small>プロファイル、受信規則</small></div>
+        <div class="diagram-box">サービス<small>IP:Portで待ち受け</small></div>
+      </div>
+      <p>
+        通信できないときは、アプリが待ち受けているか、ポートが開いているか、Firewallが許可しているか、途中経路で遮断されていないかを分けて確認します。
+      </p>
+    </section>
+
+    <section id="connection-flow" class="card">
+      <h2>6. 通信が成立するまでの流れ</h2>
+      <p>
+        Windowsでアプリが通信するときは、概念的に次の順で条件が満たされる必要があります。
+        障害調査では、上から順に確認すると原因候補を整理しやすくなります。
+      </p>
+      <div class="flow">
+        <div class="flow-step"><strong>1. 接続先の指定</strong><br />URL、ホスト名、IPアドレス、ポート番号、プロトコルが正しいかを確認します。</div>
+        <div class="flow-step"><strong>2. 名前解決</strong><br />DNSまたはhostsにより、ホスト名がIPアドレスへ解決できるかを確認します。</div>
+        <div class="flow-step"><strong>3. 経路</strong><br />同一サブネット、ゲートウェイ、VPN、ルーティングを通じて到達できるかを確認します。</div>
+        <div class="flow-step"><strong>4. ポート到達</strong><br />接続先サービスが待ち受けており、Firewallや経路上の制御で遮断されていないかを確認します。</div>
+        <div class="flow-step"><strong>5. プロキシや認証</strong><br />必要なプロキシ、資格情報、Windows認証、証明書が正しく使われているかを確認します。</div>
+        <div class="flow-step"><strong>6. アプリケーション応答</strong><br />HTTPステータス、アプリログ、サーバーログ、イベントログで処理結果を確認します。</div>
+      </div>
+    </section>
+
+    <section id="remote-work" class="card">
+      <h2>7. 社内では動くが在宅では動かない原因分類</h2>
+      <p>
+        在宅勤務や社外ネットワークでは、社内LANとは前提が変わります。
+        同じPCでも、VPN有無、DNS、ルート、プロキシ、Firewall、端末管理ポリシー、証明書利用が変わる場合があります。
+      </p>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>原因分類</th>
+            <th>典型例</th>
+            <th>確認方法</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>名前解決</td>
+            <td>社内DNSでしか解決できない名前をVPNなしで使っている。</td>
+            <td><code>nslookup</code>、DNSサーバー、検索サフィックス。</td>
+          </tr>
+          <tr>
+            <td>経路</td>
+            <td>VPN接続時だけ社内セグメントへのルートが追加される。</td>
+            <td><code>route print</code>、VPN接続状態、割り当てIP。</td>
+          </tr>
+          <tr>
+            <td>プロキシ</td>
+            <td>社外ではプロキシ経由が必要、または社内プロキシに届かない。</td>
+            <td>Windows設定、ブラウザ設定、WinHTTP設定、アプリ設定。</td>
+          </tr>
+          <tr>
+            <td>ポート制御</td>
+            <td>自宅回線やVPNポリシーで特定ポートが許可されていない。</td>
+            <td><code>Test-NetConnection</code>、Firewall、VPNポリシー。</td>
+          </tr>
+          <tr>
+            <td>認証・証明書</td>
+            <td>社内端末証明書やWindows認証の前提が満たされない。</td>
+            <td>証明書ストア、資格情報、ドメイン到達性、イベントログ。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="operations" class="card">
+      <h2>8. 実務での観点</h2>
+      <p>
+        ネットワーク調査では、「つながらない」を一つの問題として扱わず、名前解決、経路、ポート、認証、アプリ応答に分けます。
+        Windowsではさらに、Firewallプロファイル、プロキシ設定、VPNアダプタ、ドメイン参加状態、資格情報キャッシュが関係することがあります。
+      </p>
+      <ul>
+        <li>接続先が名前かIPかを確認し、名前解決とIP到達性を分けて調べます。</li>
+        <li>ポートが開いているかを確認し、アプリが待ち受けているかとFirewall許可を分けます。</li>
+        <li>ブラウザとサービスで挙動が違う場合、プロキシ設定と実行ユーザーの違いを確認します。</li>
+        <li>VPN接続時は、DNSサーバー、ルート、割り当てIP、分割トンネルの有無を確認します。</li>
+        <li>RDP、SMB、WinRMは便利ですが、公開範囲、認証、監査、接続元制限を設計して使います。</li>
+      </ul>
+      <div class="success">
+        <strong>調査の型：</strong>
+        「名前が引けるか」「IPに届くか」「ポートが開いているか」「認証できるか」「アプリが返しているか」を分けると、曖昧な通信障害を扱いやすくなります。
+      </div>
+    </section>
+
+    <section id="commands" class="card">
+      <h2>9. コマンド例</h2>
+      <p>
+        Windowsのネットワーク状態は、標準コマンドとPowerShellで確認できます。
+      </p>
+      <table class="command-table">
+        <thead>
+          <tr>
+            <th>目的</th>
+            <th>コマンド例</th>
+            <th>確認できること</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>IP設定</td>
+            <td><code>ipconfig /all</code></td>
+            <td>IP、DNS、DHCP、ゲートウェイ、アダプタ情報を確認できます。</td>
+          </tr>
+          <tr>
+            <td>名前解決</td>
+            <td><code>nslookup server.example.local</code></td>
+            <td>名前がどのDNSでどのIPへ解決されるかを確認できます。</td>
+          </tr>
+          <tr>
+            <td>到達確認</td>
+            <td><code>ping 192.168.10.10</code></td>
+            <td>ICMP応答の有無を確認できます。ただし応答禁止の環境もあります。</td>
+          </tr>
+          <tr>
+            <td>経路確認</td>
+            <td><code>tracert server.example.local</code></td>
+            <td>接続先までの経路を確認できます。</td>
+          </tr>
+          <tr>
+            <td>ポート確認</td>
+            <td><code>Test-NetConnection server.example.local -Port 443</code></td>
+            <td>指定ポートへTCP接続できるかを確認できます。</td>
+          </tr>
+          <tr>
+            <td>WinHTTPプロキシ</td>
+            <td><code>netsh winhttp show proxy</code></td>
+            <td>サービスや一部アプリが参照するWinHTTPプロキシ設定を確認できます。</td>
+          </tr>
+          <tr>
+            <td>Firewallプロファイル</td>
+            <td><code>Get-NetFirewallProfile</code></td>
+            <td>ドメイン、プライベート、パブリックのFirewall状態を確認できます。</td>
+          </tr>
+        </tbody>
+      </table>
+      <pre><code>ipconfig /all
+nslookup intranet.example.local
+Test-NetConnection intranet.example.local -Port 443
+Get-NetIPConfiguration
+Get-NetTCPConnection -State Listen
+netsh winhttp show proxy</code></pre>
+      <div class="warning">
+        <strong>解釈の注意：</strong>
+        <code>ping</code> が失敗しても、必ずしもアプリ通信が失敗するとは限りません。ICMPが遮断されているだけの場合があります。業務アプリのポートで確認します。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>第6章のまとめ</h2>
+      <ol class="summary-list">
+        <li>IPアドレス、サブネット、デフォルトゲートウェイは、端末がどのネットワークへ通信できるかを決める基礎である。</li>
+        <li>DNSは名前解決、DHCPはネットワーク設定の自動配布、hostsは端末ローカルの名前解決上書きである。</li>
+        <li>プロキシとVPNは、通信経路、認証、名前解決、ルーティングに影響する。</li>
+        <li>RDP、SMB、WinRMはWindows運用で重要だが、公開範囲と認証を慎重に設計する。</li>
+        <li>Windows Firewallは、ネットワークプロファイルや規則により受信・送信通信を制御する。</li>
+        <li>通信調査では、名前解決、経路、ポート、プロキシ、認証、アプリ応答を分けて確認する。</li>
+        <li>社内では動くが在宅では動かない場合、VPN、DNS、ルート、プロキシ、証明書、Firewallの差異を確認する。</li>
+      </ol>
+    </section>
+
+    <section id="quiz" class="card">
+      <h2>10. 理解度チェック</h2>
+
+      <div class="quiz">
+        <h3>Q1. デフォルトゲートウェイは何のために使われますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            自分のネットワーク外へ通信するときに最初に渡すルーターです。
+            未設定や誤設定では、別セグメントや外部ネットワークへ到達できない場合があります。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q2. DNSとhostsファイルの違いは何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            DNSはネットワーク上の名前解決基盤です。
+            hostsファイルは端末ローカルで名前とIPアドレスの対応を上書きするファイルです。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q3. ブラウザでは接続できるがWindowsサービスでは接続できない場合、何を疑いますか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            プロキシ設定の違い、WinHTTP設定、サービス実行ユーザーの権限や資格情報、証明書ストア、Firewall、DNS設定の違いを疑います。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q4. ポート番号を確認する理由は何ですか。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            接続先サービスがどの入口で待ち受けているか、Firewallや経路で遮断されていないか、別プロセスと競合していないかを確認するためです。
+          </p>
+        </details>
+      </div>
+
+      <div class="quiz">
+        <h3>Q5. 社内では動くが在宅では動かない場合、代表的な原因分類を挙げてください。</h3>
+        <details>
+          <summary>回答例を見る</summary>
+          <p>
+            VPN未接続または経路不足、社内DNSに到達できない、プロキシ設定差異、Firewallやポート制御、証明書やWindows認証の前提不足などが考えられます。
+          </p>
+        </details>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>次章への接続</h2>
+      <p>
+        第6章では、Windowsのネットワーク基礎を扱いました。
+        第7章では、OSやアプリの設定が保存されるレジストリを学びます。
+        ファイル、権限、プロセス、サービス、通信に加えて、設定値がどこから来るのかを理解すると、障害調査の幅が広がります。
+      </p>
+      <div class="success">
+        <strong>第7章の入口：</strong>
+        Windowsの動作は、ファイルだけでなく、レジストリやポリシーに保存された設定にも強く影響されます。
+      </div>
+    </section>
+
+    <nav class="chapter-nav" aria-label="章ナビゲーション">
+      <a href="chapter-05.html">前章：第5章 プロセスとサービス</a>
+      <a href="../index.html">目次へ戻る</a>
+      <a href="chapter-07.html">次章：第7章 レジストリ</a>
+    </nav>
+
+    <p class="footer">
+      Windows OS教養講座 / 第6章 ネットワーク基礎
+    </p>
+  </main>
+</body>
+</html>
