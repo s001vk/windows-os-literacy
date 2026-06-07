@@ -55,6 +55,11 @@ Windowsのエクスプローラーでは、`index.html` をダブルクリック
 
 この教材は静的HTMLだけで構成しているため、GitHub Pagesでは `main` ブランチのルートを公開元にできます。
 
+現在の公開先は次の通りです。
+
+- GitHubリポジトリ: https://github.com/s001vk/windows-os-literacy
+- GitHub Pages: https://s001vk.github.io/windows-os-literacy/
+
 基本方針は次の通りです。
 
 - リポジトリ名は `windows-os-literacy` を想定します。
